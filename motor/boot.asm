@@ -23,7 +23,9 @@
 
 INBYTE  EQU 0x034C        ; ROM: bájt a szalagról → C
 DFILE   EQU 0x4200
-PERSIST EQU 0x4100
+PERSIST EQU 0x7F00        ; D-3.3 korrekció: a RAM tetejére költözött (korábban
+                          ; 0x4100 — ott a boot saját nullázó ciklusa törölte
+                          ; volna ki a kódot, l. FEJLESZTESI-NAPLO)
 STG2    EQU 0x4600
 
         ORG 0x4082
@@ -57,8 +59,7 @@ PERSISTINIT:
         LD (HL),0x01          ; verzió
         INC HL
         LD BC,0x00FA          ; 0x04..0xFD nullázás (250 B)
-        LD A,0
-PZL:    LD (HL),A
+PZL:    LD (HL),0            ; azonnali 0 — a számláló-teszt nem bántja
         INC HL
         DEC BC
         LD A,B

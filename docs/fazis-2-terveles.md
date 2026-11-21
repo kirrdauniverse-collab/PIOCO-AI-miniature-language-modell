@@ -34,8 +34,8 @@ A memóriatérkép tíz zónája és minden **zónaszintű** bájtméret az 1. f
 
 | Címtartomány | Zóna | Méret | Ki írhatja |
 | --- | --- | ---: | --- |
-| 0x4000–0x40FF | Rendszerváltozók + saját állapot (farok) | 256 B | a ROM (a saját területén) + a motor (csak a 2.2 farokmezőit) |
-| 0x4100–0x41FF | **PROFIL / PERSIST_BLOCK** | 256 B | csak a BOOT sáv és a mentés/visszatöltés; minden más sáv **átugorja** |
+| 0x4000–0x4081 | Rendszerváltozók + saját állapot (farok) | 130 B | a ROM (a saját területén) + a motor (csak a 2.2 farokmezőit) |
+| 0x4082–0x41FF | **BOOT-betöltő sáv** (stage-1 kód + adat) | 464 B | csak betöltéskor; a betöltő saját scratch-e (fejléc-pufferek, táblák) |
 | 0x4200–0x45FF | D_FILE + UI puffer | 1024 B | kizárólag a képernyőíró (print-tölcsér, biztonságos kódokkal) |
 | 0x4600–0x53FF | MOTOR (kód) | 3584 B | csak betöltéskor |
 | 0x5400–0x5CFF | SZÓTÁR + súlytömb | 2304 B | betöltéskor; futás közben **csak olvasható** |
@@ -43,9 +43,12 @@ A memóriatérkép tíz zónája és minden **zónaszintű** bájtméret az 1. f
 | 0x6300–0x6AFF | ALAPMAG | 2048 B | betöltéskor; futás közben csak olvasható |
 | 0x6B00–0x7AFF | CSOMAGTERÜLET (overlay-k) | 4096 B | overlay-csere |
 | 0x7B00–0x7DFF | MUNKATERÜLET | 768 B | motor; a nem-vászon rész minden válasz előtt újrahasználható |
-| 0x7E00–0x7FFF | TARTALÉK | 512 B | a 0.1-ben üresen marad |
+| 0x7E00–0x7EFF | TARTALÉK | 256 B | a 0.1-ben üresen marad |
+| 0x7F00–0x7FFF | **PROFIL / PERSIST_BLOCK** | 256 B | csak a BOOT sáv és a mentés/visszatöltés; minden más sáv **átugorja** |
 
 Ha a 3. fázis mérése a motort sürgeti, először a TARTALÉK, majd a CHAT fara ad helyet — a PERSIST_BLOCK akkor sem mozdul.
+
+**D-3.3 korrekció (2026-11-21, mért ütközés):** az eredeti terv a PERSIST_BLOCK-ot a 0x4100–0x41FF-re tette. A 3. fázis végpont-tesztje (Z80-szimuláció) azonban mérte, hogy a REM-sorba rejtett boot-kód a 0x4082-től nő felfelé, és a 126 bájtos hely (0x4082–0x40FF) kevés — a stage-1 betöltő már 262 B, a PERSIST-init nullázó ciklusa így saját magát törölné ki. Ezért a PERSIST_BLOCK a RAM tetejére, a **0x7F00–0x7FFF**-re költözött (a TARTALÉK 256 B-ra zsugorodott), a **0x4082–0x41FF pedig a BOOT-betöltő saját sávája** lett (kód + fejléc-pufferek + típus→cél tábla). Ez az egyetlen címzóna-kihagyás a mesterprompt memóriatérkép-követelménye alól, indoka tiszta mérés.
 
 ### 2.2 SYSVARS-farok — a motor saját állapotmezői
 
@@ -110,7 +113,7 @@ A prototípus nyelve **angol**: a magyar nyelv nagy helyet foglal és bonyolult 
 
 ## 4. Bitmezők végleges bontása
 
-### 4.1 PERSIST_BLOCK elrendezés (0x4100–0x41FF)
+### 4.1 PERSIST_BLOCK elrendezés (0x7F00–0x7FFF — D-3.3 korrekció, korábban 0x4100–0x41FF)
 
 A teljes blokk **XOR 0xA5 maszkkal** tárolódik, **CRC-16** (polinom 0x1021, kezdőérték 0xFFFF) zárja, és minden bitmezőre igaz a **„76-kerülő"**: mentéskor, ha a maszkolt bájt mégis éppen `0x76` lenne, a motor a tartalék bitet átbillenti, amíg a tárolt érték nem `0x76` — így a maszk ellenére sem állhat elő a sorszáró kód. A mágia két bájtja az ASCII „P", „C" (0x50, 0x43 — a D-3.2 nyelvi döntéssel egyszerűsítve); hibás mágia vagy CRC esetén a blokk üresnek számít, és a motor a BOOT-sávos újrakérdezéssel áll helyre.
 
@@ -131,7 +134,7 @@ A teljes blokk **XOR 0xA5 maszkkal** tárolódik, **CRC-16** (polinom 0x1021, ke
 | 0xFC | 2 | CRC-16 (0x1021, init 0xFFFF) |
 | 0xFE | 2 | tartalék |
 
-Összesen 256 B, folytonos, ellenőrzött. A multiload betöltő címtartománya **soha** nem metszi a 0x4100–0x41FF-et (a BOOT betöltője betöltéskor is ellenőrzi: fejléc-cél a védett tartományba → betöltés megtagadva).
+Összesen 256 B, folytonos, ellenőrzött. A multiload betöltő címtartománya **soha** nem metszi a 0x7F00–0x7FFF-et (a BOOT betöltője betöltéskor is ellenőrzi: fejléc-cél a védett tartományba → betöltés megtagadva).
 
 ### 4.2 FLAGS (1 bájt)
 
@@ -225,7 +228,7 @@ A fejlesztés alatt a **gyári (ROM-kompatibilis) blokkformátum** az alap, elne
 | + | `PACK####` | ugyanoda, csere (overlay) | ≤ 4096 |
 | M | `SAVEnnnn` | emlékezet-mentés (EMEM) — mindig **új blokk a szalag végén** | ≤ 1536 + 256 |
 
-Minden adatblokkban, a ZX81 blokk-adat kezdete után **4 bájtos saját fejléc** él: `[típus] [verzió] [hossz_lo] [hossz_hi]` (típus: 1 = BOOT, 2 = MOTOR, 3 = SZÓTÁR, 4 = ALAP, 5 = CSOMAG, 6 = MENTÉS; hossz little-endian), majd a hasznos adat, végül **CRC-16** (0x1021, init 0xFFFF) a fejléc + adat felett. A BOOT betöltő kódja a fejléc típusát és a célcímet nézi: **megtagadja** a betöltést, ha a cél metszené a 0x4100–0x41FF védett tartományt, vagy CRC hiba van — ilyenkor újrakérést kér.
+Minden adatblokkban, a ZX81 blokk-adat kezdete után **4 bájtos saját fejléc** él: `[típus] [verzió] [hossz_lo] [hossz_hi]` (típus: 1 = BOOT, 2 = MOTOR, 3 = SZÓTÁR, 4 = ALAP, 5 = CSOMAG, 6 = MENTÉS; hossz little-endian), majd a hasznos adat, végül **CRC-16** (0x1021, init 0xFFFF) a fejléc + adat felett. A BOOT betöltő kódja a fejléc típusát és a célcímet nézi: **megtagadja** a betöltést, ha a cél metszené a 0x7F00–0x7FFF védett tartományt (D-3.3), vagy CRC hiba van — ilyenkor újrakérést kér.
 
 ### 6.3 Multiload-lánc és az emlékezet-mentés
 
@@ -346,7 +349,7 @@ Ismeretlen szóra nem mond „nem értem" sablont: betűnként beolvassa (3.1), 
 
 ### 14.2 Amit a 3. fázis nem dönt újra
 
-- A címtartományok határai (mérés kényszerítheti elmozdításukat — és a PERSIST akkor sem mozdul).
+- A címtartományok határai (mérés kényszerítheti elmozdításukat — a PERSIST egyetlen ismert kivétellel: a D-3.3 korrekció a REM-boot mérete miatt a 0x7F00-ra tette).
 - XOR 0xA5 maszk + 76-kerülő minden bitmezőn; CRC-16 (0x1021, init 0xFFFF) minden blokkon és a PERSIST-en.
 - Képernyőre csak 0x00–0x3F és 0x80–0xBF; sorvég 0x76 csak a képernyőírótól, soronként egyet; minden kiírás a print-tölcserén át.
 - Turbo ki a fejlesztés alatt; mentés csak szalagvégre, `SAVEnnnn`.

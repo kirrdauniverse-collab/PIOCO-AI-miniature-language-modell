@@ -3,7 +3,7 @@
 > Miniatűr, **valóban generáló** AI nyelvi modell a Sinclair ZX81-hez (16 KB RAM) —
 > egyetlen összefüggő, több betöltési sávot tartalmazó **.T81** kazettafájlban.
 
-**Állapot:** 🔵 **3. fázis (Kódolás és csomagolás) — 1. szelet kész** · nyelvi döntés: a prototípus **angol** (D-3.2), a magyar a kiforrott modell utáni finomítási fázis
+**Állapot:** 🔵 **3. fázis (Kódolás és csomagolás) — 2. szelet kész: Z80-szimulációs végpont-teszt MINDEN ZÖLD** · prototípus-nyelv: **angol** (D-3.2) · PERSIST: 0x7F00 (D-3.3)
 
 ## Mi ez?
 
@@ -38,7 +38,7 @@ ingerlésben és vitában is saját megfogalmazással, több körön át emléke
 | --- | --- | --- |
 | 1 | Ötlet és koncepció | ✅ kész (2026-11-21) |
 | 2 | Tervezés, működés és dizájn — végleges memóriatérkép, bitmezők, sávformátum, képernyők, vezérlők, Agent-parancsok | ✅ kész (2026-11-21) |
-| 3 | Kódolás és csomagolás — Z80 motor, PC-s eszközök, .T81 összeállítás | 🔵 1. szelet kész (2026-11-21): építés + blokkok, emulátoros futás következik |
+| 3 | Kódolás és csomagolás — Z80 motor, PC-s eszközök, .T81 összeállítás | 🔵 2. szelet kész (2026-11-21): építés + blokkok + **Z80-szimulációs végpont-teszt zöld** (CRC-kereszteszt, D_FILE-képernyőkép); következik: INPUT + Agent-kör |
 | 4 | Tudásbázis, tréning és tesztelés — alaptudás + témacsomagok, emulátoros ellenőrzés | ⬜ |
 
 ## Repó struktúra
@@ -47,9 +47,10 @@ ingerlésben és vitában is saját megfogalmazással, több körön át emléke
 PIOCO-AI/
 ├── docs/        tervezési és fázisdokumentumok
 ├── motor/       ZX81 gépi kód (Z80): boot.asm (1. szakasz), motor0.asm (2. szakasz)
-├── eszkozok/    PC-s eszközök: crc16, tokengen, alapmag_gen, z80asm, epites, csomaggen
+├── eszkozok/    PC-s eszközök: crc16, tokengen, alapmag_gen, z80asm, epites, csomaggen,
+│                z80sim (Z80-szimulátor), szimfuttatas (végpont-teszt)
 ├── tudas/       alaptudás: angol prototípus-korpusz + generált szótár-lista
-└── kazetta/     pioco-0.1.tape (blokkfolyam) + adat/ (bin-ek és .blk blokkok)
+└── kazetta/     pioco-0.1.tape (blokkfolyam) + adat/ + kepernyokep_szimulacio.txt
 ```
 
 ## Célplatform

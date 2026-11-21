@@ -13,7 +13,7 @@ R = {"B": 0, "C": 1, "D": 2, "E": 3, "H": 4, "L": 5, "(HL)": 6, "A": 7}
 DD = {"BC": 0, "DE": 1, "HL": 2, "SP": 3}
 QQ = {"BC": "C5", "DE": "D5", "HL": "E5", "AF": "F5"}   # PUSH
 POPQ = {"BC": "C1", "DE": "D1", "HL": "E1", "AF": "F1"}  # POP
-CC = {"NZ": 0, "Z": 1, "NC": 4, "C": 5, "PO": 2, "PE": 3, "P": 6, "M": 7}
+CC = {"NZ": 0, "Z": 1, "NC": 2, "C": 3, "PO": 4, "PE": 5, "P": 6, "M": 7}
 ALU = {"ADD": 0, "ADC": 1, "SUB": 2, "SBC": 3, "AND": 4, "XOR": 5, "OR": 6, "CP": 7}
 IMPLIED = {"NOP": "00", "HALT": "76", "DI": "F3", "EI": "FB", "CPL": "2F",
            "SCF": "37", "CCF": "3F", "RLCA": "07", "RRCA": "0F", "RLA": "17",
@@ -384,6 +384,15 @@ def _selftest():
         ("JR -2", [0x18, 0xFE]),
         ("JR NZ,-2", [0x20, 0xFE]),
         ("JR Z,-3", [0x28, 0xFD]),
+        ("JR NC,-2", [0x30, 0xFE]),
+        ("JR C,-2", [0x38, 0xFE]),
+        ("JP NC,0x1234", [0xD2, 0x34, 0x12]),
+        ("JP C,0x1234", [0xDA, 0x34, 0x12]),
+        ("JP PO,0x1234", [0xE2, 0x34, 0x12]),
+        ("JP M,0x1234", [0xFA, 0x34, 0x12]),
+        ("RET NC", [0xD0]),
+        ("RET C", [0xD8]),
+        ("CALL Z,0x1234", [0xCC, 0x34, 0x12]),
     ]
     asm = Asm()
     for src, expect in cases:
