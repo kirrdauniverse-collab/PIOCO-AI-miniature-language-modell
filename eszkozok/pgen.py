@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""PIOCO AI — pgen.py: REZIDENS .P terjesztési fájl (pioco-0.1.p) generálása.
+"""PIOCO AI — pgen.py: REZIDENS .P terjesztési fájl (pioco-0.2.p) generálása.
 
 v2 — a C/6-os hibajelentés (valódi emulátorból) utáni áttervezés:
   - a `RAND USR 16514` sor számformátuma a zmakebas forrása szerint készül:
@@ -18,7 +18,7 @@ zmakebas ZX81 mód forrásakódjából):
   .P = [116 B (0x74) sysvars a 0x4009-től][program][adatterület]
        [25×0x76 összezsugorított képernyő][0x80 VARS-záró]
 Sorformátum: [sorszám BE:2][hossz LE:2][törzs…0x76] (a hossz a 0x76-tal).
-A repóbeli kimenet neve marad pioco-0.1.p; a felhasználónak átadott
+A repóbeli kimenet neve marad pioco-0.2.p; a felhasználónak átadott
 másolat a pioco-by-GLM-0.1.p nevet viseli (névkonvenció, 2026-11-21).
 """
 import os, sys
@@ -27,7 +27,7 @@ from z80asm import assemble
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ADAT = os.path.join(BASE, "kazetta", "adat")
-OUT = os.path.join(BASE, "kazetta", "pioco-0.1.p")
+OUT = os.path.join(BASE, "kazetta", "pioco-0.2.p")
 
 PROG = 0x407D          # programterület kezdete (REM-törzs: 0x4082 = 16514)
 REM, RAND, USR, NUMMARK = 0xEA, 0xF9, 0xD4, 0x7E

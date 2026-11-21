@@ -8,7 +8,7 @@
 ;   - ROM IN-BYTE: 0x034C (a bájt a C regiszterben) — ZX81 ROM listing
 ;   - gépi kód belépési cím: 16514 = 0x4082 (REM sor) — andrivet
 ;   - saját D_FILE UI: 0x4200, ROM-standard 25×33 + 1 = 826 B — 5.2 (D-3.4)
-;   - PERSIST: 0x7F00, mágia 'P','C', verzió, CRC-16 (0x1021, 0xFFFF) — D-3.3
+;   - PERSIST: 0x7E00, mágia 'P','C', verzió, CRC-16 (0x1021, 0xFFFF) — D-3.8
 ;
 ; NYÍLT TÉTELEK (emulátor-ellenőrzés):
 ;   - IN-BYTE szinkron/pilot-kezelés blokkhatárokon (szalag mód)
@@ -36,9 +36,11 @@
 
 INBYTE  EQU 0x034C        ; ROM: bájt a szalagról → C
 DFILE   EQU 0x4200
-PERSIST EQU 0x7F00        ; D-3.3 korrekció: a RAM tetejére költözött (korábban
-                          ; 0x4100 — ott a boot saját nullázó ciklusa törölte
-                          ; volna ki a kódot, l. FEJLESZTESI-NAPLO)
+PERSIST EQU 0x7E00        ; D-3.8: a 0x7F00-ról ide költözött — a ROM listája
+                          ; szerint a gép vereme (SP=0x7FFE), az ERR_SP
+                          ; (0x7FFC) és a NMI képkockánkénti mentései
+                          ; (0x7FF4-0x7FFB) a RAM legtetején élnek; a 0x7F00+
+                          ; terület a ROM-é marad (voltaképpeni D-3.3 hiba)
 STG2    EQU 0x4600
 
         ORG 0x4082

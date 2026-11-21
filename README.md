@@ -3,7 +3,7 @@
 > Miniatűr, **valóban generáló** AI nyelvi modell a Sinclair ZX81-hez (16 KB RAM) —
 > egyetlen összefüggő, több betöltési sávot tartalmazó **.T81** kazettafájlban.
 
-**Állapot:** 🟢 **3. fázis — KIPRÓBÁLHATÓ VÁLTOZAT v2: `pioco-by-GLM-0.1.p`** (a C/6-javítás után; a belépő sor bájtonként a zmakebas referenciával azonos) · prototípus-nyelv: **angol** (D-3.2) · PERSIST: 0x7F00 (D-3.3) · **névkonvenció: minden átadott fájl `pioco-by-GLM-<verzió>…`** (2026-11-21-től)
+**Állapot:** 🟢 **3. fázis — KIPRÓBÁLHATÓ VÁLTOZAT v0.2: `pioco-by-GLM-0.2.p`** (a C/F080 + száguldozó-pixelek javítása: D-3.8 PERSIST a ROM veremzónájáról 0x7E00-ra költözött — a hibát a valódi ROM Logan–O'Hara listája alapján találtuk meg) · prototípus-nyelv: **angol** (D-3.2) · PERSIST: 0x7E00 (D-3.8) · **névkonvenció: minden átadott fájl `pioco-by-GLM-<verzió>…`** (2026-11-21-től)
 
 ## Mi ez?
 
@@ -38,7 +38,7 @@ ingerlésben és vitában is saját megfogalmazással, több körön át emléke
 | --- | --- | --- |
 | 1 | Ötlet és koncepció | ✅ kész (2026-11-21) |
 | 2 | Tervezés, működés és dizájn — végleges memóriatérkép, bitmezők, sávformátum, képernyők, vezérlők, Agent-parancsok | ✅ kész (2026-11-21) |
-| 3 | Kódolás és csomagolás — Z80 motor, PC-s eszközök, .T81 összeállítás | 🔵 4. szelet kész (2026-11-21): végpont-tesztek + kipróbálható rezidens .P, **a C/6-os valós hibajelentés után 3 javítással (D-3.5–3.7), zmakebas-referenciával bájtonként validálva**; következik: INPUT + Agent-kör, .T81 multiload |
+| 3 | Kódolás és csomagolás — Z80 motor, PC-s eszközök, .T81 összeállítás | 🔵 5. szelet kész (2026-11-21): D-3.8 PERSIST-költöztetés a ROM veremzónájáról (valódi ROM + Logan–O'Hara lista alapján), romsim.py ROM-szintű virtuális gép; következik: ROM-szintű zöld futás, INPUT + Agent-kör |
 | 4 | Tudásbázis, tréning és tesztelés — alaptudás + témacsomagok, emulátoros ellenőrzés | ⬜ |
 
 ## Repó struktúra

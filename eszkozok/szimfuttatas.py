@@ -29,7 +29,7 @@ TAPE = os.path.join(BASE, "kazetta", "pioco-0.1.tape")
 SCREENSHOT = os.path.join(BASE, "kazetta", "kepernyokep_szimulacio.txt")
 
 DFILE = 0x4200
-PERSIST = 0x7F00   # D-3.3 korrekció (korábban 0x4100 — ott a boot saját kódját ütötte volna)
+PERSIST = 0x7E00   # D-3.8: a 0x7F00-ról költözött — a ROM verem/ERR_SP/NMI-mentések a RAM tetején élnek
 
 # ASCII → ZX81 (forrás: Wikipedia „ZX81 character set”, l. motor0.asm ASCTBL)
 PUNCT = {'"': 0x0B, '$': 0x0D, ':': 0x0E, '?': 0x0F, '(': 0x10, ')': 0x11,
@@ -132,7 +132,7 @@ def main():
     zones = [(0x400C, 0x400F), (0x4082, 0x41FF), (0x4200, 0x4539),
              (0x4600, 0x53FF),           # MOTOR kód + a saját verem teteje (D-3.5)
              (0x5400, 0x5CFF), (0x6300, 0x6AFF), (0x6B00, 0x6B3F),
-             (0x7F00, 0x7FFF)]
+             (0x7E00, 0x7EFF)]           # PERSIST (D-3.8) — a 0x7F00+ a ROM-é
     bad = [a for a, _ in sim.writes if not any(lo <= a <= hi for lo, hi in zones)]
     assert not bad, f"zónaszért írás: {[hex(a) for a in bad[:8]]}"
     nw = len(sim.writes)
@@ -145,7 +145,7 @@ def main():
         base = DFILE + row * 33
         lines.append("|" + "".join(zx_to_txt(m[base + col]) for col in range(32)) + "|")
     lines.append("+" + "-" * 32 + "+")
-    art = "PIOCO AI 0.1 — D_FILE a Z80-szimulációs végpont-teszt után\n" + "\n".join(lines) + "\n"
+    art = "PIOCO AI 0.2 — D_FILE a Z80-szimulációs végpont-teszt után\n" + "\n".join(lines) + "\n"
     with open(SCREENSHOT, "w", encoding="utf-8") as f:
         f.write(art)
     print(art)

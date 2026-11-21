@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""PIOCO AI — pfuttatas.py: VIRTUÁLIS EMULÁTOR-TESZT a pioco-0.1.p fájlon.
+"""PIOCO AI — pfuttatas.py: VIRTUÁLIS EMULÁTOR-TESZT a pioco-0.2.p fájlon.
 
 v2 — a v1 teszt az elavult (REM-hordozós, 6 soros) felépítést nézte;
 az új, C/6-javított elrendezést vizsgálja:
@@ -23,11 +23,11 @@ from szimfuttatas import a2z, zx_to_txt
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ADAT = os.path.join(BASE, "kazetta", "adat")
-PFILE = os.path.join(BASE, "kazetta", "pioco-0.1.p")
+PFILE = os.path.join(BASE, "kazetta", "pioco-0.2.p")
 SCREENSHOT = os.path.join(BASE, "kazetta", "kepernyokep_p.txt")
 
 DFILE = 0x4200
-PERSIST = 0x7F00
+PERSIST = 0x7E00   # D-3.8: a 0x7F00-ról költözött — a ROM verem/ERR_SP/NMI-mentések a RAM tetején élnek
 
 def main():
     pf = open(PFILE, "rb").read()
@@ -145,7 +145,7 @@ def main():
     zones = [(0x400C, 0x400F), (0x4082, 0x41FF), (0x4200, 0x4539),
              (0x4600, 0x53FF),           # MOTOR kód + saját verem (D-3.5)
              (0x5400, 0x5CFF), (0x6300, 0x6AFF), (0x6B00, 0x6B3F),
-             (0x7F00, 0x7FFF)]
+             (0x7E00, 0x7EFF)]           # PERSIST (D-3.8) — a 0x7F00+ a ROM-é
     bad = [a for a, _ in sim.writes if not any(lo <= a <= hi for lo, hi in zones)]
     assert not bad, f"zónaszért írás: {[hex(a) for a in bad[:8]]}"
     print(f"írások: {len(sim.writes)} db, mind az engedélyezett zónákban — szalagolvasás nem volt")
@@ -156,7 +156,7 @@ def main():
         base = DFILE + row * 33
         lines_out.append("|" + "".join(zx_to_txt(m[base + col]) for col in range(32)) + "|")
     lines_out.append("+" + "-" * 32 + "+")
-    art = ("PIOCO AI 0.1 — a pioco-by-GLM-0.1.p virtuális emulátor-futása után\n"
+    art = ("PIOCO AI 0.2 — a pioco-by-GLM-0.2.p virtuális emulátor-futása után\n"
            + "\n".join(lines_out) + "\n")
     with open(SCREENSHOT, "w", encoding="utf-8") as f:
         f.write(art)
