@@ -13,7 +13,8 @@ import sys
 
 MOTOR_ZONA_MAX = 0x55FF - 0x4600 + 1
 PROFIL_ZONA = (0x4100, 0x41FF)
-TIPUSOK = {1: "BOOT", 2: "MOTOR", 3: "SZOTAR", 4: "ALAPMAG", 5: "CSOMAG", 6: "EMLEKEZET"}
+TIPUSOK = {1: "BOOT", 2: "MOTOR", 3: "SZOTAR", 4: "ALAPMAG", 5: "CSOMAG", 6: "EMLEKEZET",
+           7: "TADAT"}
 
 hibak = []
 
@@ -158,6 +159,28 @@ def vizsgal_eml(path):
     print(f"[EML] zóna: {count} rekord, {len(adat)} bájt")
 
 
+def vizsgal_tadat(path):
+    adat = open(path, "rb").read()
+    if len(adat) > 256:
+        hibak.append(f"tadat tul nagy: {len(adat)} B (max 256)")
+        return
+    exp = {
+        0x00: (bytes([0]) + bytes([5, 0, 3, 6, 1, 4, 6, 2, 5, 0, 3, 5, 1, 4]), "TAB13"),
+        0x0F: (b"SUN\x00MON\x00TUE\x00WED\x00THU\x00FRI\x00SAT\x00", "DOWTAB"),
+        0x2B: (b"it's \x00", "TXTDAYP"),
+        0x31: (b"time is \x00", "TXTTIS"),
+        0x3A: (b"TODAY\x00DATE\x00\x00", "WTAB"),
+        0x46: (b"TIME\x00\x00", "TIMTAB"),
+        0x4C: (b"IF\x00WOULD\x00COULD\x00WISH\x00\x00", "IMAGTAB"),
+        0x61: (b"DREAM\x00HUMAN\x00MAYBE\x00SOMETHING\x00", "IMAGSEED"),
+    }
+    for off, (vartalan, nev) in exp.items():
+        if adat[off:off + len(vartalan)] != vartalan:
+            hibak.append(f"tadat {nev} @ +{off:#04x} hibas (pico.asm EQU eltolasokkal osszevetve)")
+    print(f"[TADAT] adattabla-blokk: {len(adat)} bajt (cim 0x6B00)")
+
+
+# Használat: python3 ellenorzes.py <motor.bin> <szotar.bin> <PIOCO.T81> [bg.bin] [eml.bin] [tadat.bin]
 if __name__ == "__main__":
     vizsgal_motor(sys.argv[1])
     vizsgal_szotar(sys.argv[2])
@@ -168,6 +191,9 @@ if __name__ == "__main__":
     eml = sys.argv[5] if len(sys.argv) > 5 else None
     if eml:
         vizsgal_eml(eml)
+    tadat = sys.argv[6] if len(sys.argv) > 6 else None
+    if tadat:
+        vizsgal_tadat(tadat)
     if hibak:
         print("\nHIBÁK:")
         for h in hibak:

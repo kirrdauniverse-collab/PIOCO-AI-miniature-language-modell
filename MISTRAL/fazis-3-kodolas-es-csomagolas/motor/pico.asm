@@ -24,6 +24,15 @@
 ; generálási másodperc), SHIFT+5/6 görgetés; a nyomtatómag
 ; sor-/oszlopkurzoros — a hosszú sorok már nem írják felül a
 ; 0x76-orterminátorokat, és a 23. sornál a kép felfelé görget.
+;
+; v2.3 új: NAPTÁR és KÉPZELET — év-bekérés (PROF_YR, 0xFF = nincs),
+; DOWGET héttag-számítás (Zeller-egyszerusités 2000-2099, TAB13 táblával;
+; 36525 dátumra brute-force ellenőrizve), "what day" (intent 6) és
+; "what time" (intent 7) válaszok; KÉPZELET-modul (IF/WOULD/COULD/WISH
+; felismerés -> véletlen IMAGSEED-token a generátor indításakor);
+; FACTTAB kiegészítés (SLEEP/TIRED/HUNGRY/ANGRY); statikus táblák a
+; motorzónán kívül, TADAT blokkban (0x6B00, motor/tadat.asm).
+; Motor: 4052 B (tartalék 44 B), TADAT: 125 B.
 ; ============================================================
 
 ; ---- Zónák (fázis-2 memóriatérkép) ----
@@ -41,6 +50,15 @@ CHATM0      EQU 0x6001           ; itt indul az első rekord
 MUNKAT      EQU 0x6800
 TARTALEK    EQU 0x7E00
 VEREMTOP    EQU 0x7FFF
+TADAT       EQU 0x6B00        ; fix adattabla-blokk: PB-buferek es ALAPMAG kozott
+TAB13       EQU TADAT         ; honap-index tabla (tadat.asm, T81 blokk tolto)
+DOWTAB      EQU TADAT+0x0F    ; napnevek (4 bajt/nap)
+TXTDAYP     EQU TADAT+0x2B    ; "it's "
+TXTTIS      EQU TADAT+0x31    ; "time is "
+WTAB        EQU TADAT+0x3A    ; "what day" szo-tabla
+TIMTAB      EQU TADAT+0x46    ; "what time" szo-tabla
+IMAGTAB     EQU TADAT+0x4C    ; kepzelet-aktivator tabla
+IMAGSEED    EQU TADAT+0x61    ; kepzelet-indito szavak
 
 ; ---- PROFIL eltolások ----
 PROF_NAME   EQU PROFIL+0x08
@@ -53,6 +71,7 @@ PROF_SVDAY  EQU PROFIL+0x22      ; utolsó MENTÉS napja
 PROF_SVMON  EQU PROFIL+0x23      ; utolsó MENTÉS hónapja
 PROF_DDAY   EQU PROFIL+0x24      ; aktuális dátum: nap (betöltéskor kérve)
 PROF_DMON   EQU PROFIL+0x25      ; aktuális dátum: hónap
+PROF_YR     EQU PROFIL+0x26      ; év utolsó két számjegye (0..99; 0xFF = nincs)
 
 ; ---- EMLÉKEZET zóna (CHAT vége előtt, 06 blokk célcíme) ----
 EMSTORE     EQU 0x6700
@@ -100,7 +119,9 @@ FRSNAP      EQU PB+0xEA       ; 2 bájt: FRAMES-pillanatkép (GÉNESZ előtt)
 HNDEX       EQU PB+0xEC       ; history-browser: mutatott üzenet sorszáma
 CDIR        EQU PB+0xED       ; üzenet iránya: 0 = YOU, 1 = PIOCO
 CMSG        EQU PB+0xEE       ; 2 bájt: tárolandó üzenet címe
-TMPHDR      EQU PB+0xF0       ; 20 bájt: összerakott fejléc (0-zárt)
+TMPHDR      EQU PB+0xF0     ; 20 bájt: összerakott fejléc (0-zárt)
+IMAGF       EQU PB+0xA5     ; képzelet-modul: jelző (REASON állítja)
+IMAGSEEDT   EQU PB+0xA6     ; indító-token (BGWRITE induláskor elfogyasztja)
 
         ORG MOTORBASE
 
@@ -132,6 +153,8 @@ START:
         LD (PROF_FLAGB),A       ; FLAG-B: minden állapotbit 0
         LD A,0x02
         LD (PROF_TEMP),A
+        LD A,0xFF
+        LD (PROF_YR),A          ; év: nincs meg (0xFF = jelző)
 PROFOK:
         CALL BIGRBASE           ; bigramm-tábla címének kiszámítása
         CALL EMINIT             ; emlékezetzóna mágnes-ellenőrzés + dátumvétel
@@ -147,8 +170,9 @@ PROFOK:
         CALL CLRSCR
         LD HL,TXTHELLO
         CALL PRTLN
-        CALL DATASK             ; dátum-bekérés, ha még nincs
-        CALL OBSSCAN            ; >14 napos emlékek elavulttá tétele
+        CALL DATASK             ; datum-bekeres (nap/ho/ev), ha meg nincs
+        CALL BOOTD              ; udbuszas: 'it's <nap> <datum>' kiiras
+        CALL OBSSCAN            ; >14 napos emlekek elavultta tetele
         CALL REMCHK             ; releváns emlékre rákérdezés
 
 ; ================= FŐCIKLUS =================
@@ -808,9 +832,17 @@ GENERATE:
         LD A,(INTENT)
         CP 5
         JR Z,GEN_FACT
+        CP 6
+        JR Z,GEN_DAY
+        CP 7
+        JR Z,GEN_TIME
         CP 2
         JR Z,GEN_KB
-        CALL BGWRITE
+        LD A,(IMAGF)
+        OR A
+        JR Z,GEN_PL
+        CALL IMAGPICK
+GEN_PL: CALL BGWRITE
         RET
 GEN_FACT:
         CALL EMSET              ; fakt rögzítése az emlékezetzónába
@@ -820,8 +852,73 @@ GEN_FACT:
         CALL PRTLN
         CALL NEWLINE
         RET
-GEN_PL: CALL BGWRITE
+
+; GEN_DAY: "what day" -> ha a datum es az ev megvan, napnev + datum;
+; egyebkent sima generalas
+GEN_DAY:
+        CALL DOWGET
+        CP 0xFF
+        JR Z,GEN_PL
+        CALL DP_SHOW
         RET
+
+; GEN_TIME: munkamenet-ora (bekapcsolastol eltelt szamolt masodperc);
+; dokumentalt egyszerusites: FRAMES-bol szamolva, nem valodi ora
+GEN_TIME:
+        LD HL,TXTTIS
+        CALL PRTLN
+        LD HL,(FRAMES)
+        PUSH BC
+        LD BC,50
+        CALL DIV16             ; DE = masodpercek, HL = maradek
+        PUSH DE
+        EX DE,HL
+        LD BC,60
+        CALL DIV16             ; DE = percek, HL = masodpercek
+        EX DE,HL
+        LD A,L                 ; percek (0..21)
+        CALL PRT2S
+        LD A,':'
+        CALL SAFEPCHR
+        LD A,E                 ; E = masodpercek (0..49)
+        CALL PRT2S
+        POP DE
+        POP BC
+        CALL NEWLINE
+        RET
+
+; IMAGPICK: kepzetmod-modul (IMAGF = 1: a sorban IF/WOULD/COULD/WISH volt).
+; Egy veletlan IMAGSEED-szot szotari tokenre fordit; a BGWRITE ezt a tokent
+; hasznalja indulaskor, igy a valasz a kepzelet-temaju kapcsolasokba fut bele.
+IMAGPICK:
+        CALL RND
+        AND 3
+        LD E,A                 ; E = kivalasztott sorszam (0..3)
+        LD HL,IMAGSEED
+IMGF_N: LD A,E
+        OR A
+        JR Z,IMGF_F
+        DEC E
+IMGF_A: LD A,(HL)
+        INC HL
+        OR A
+        JR NZ,IMGF_A
+        JR IMGF_N
+IMGF_F: PUSH BC
+        PUSH DE
+        PUSH HL
+        CALL DICTLOOK          ; HL = szo; B = token-ID vagy 0
+        POP HL
+        POP DE
+        POP BC
+        LD A,B
+        OR A
+        JR Z,IMGF_E
+        LD (IMAGSEEDT),A
+IMGF_E: XOR A
+        LD (IMAGF),A
+        RET
+
 GEN_KB:
         LD HL,KB_BASE           ; betöltött tudáslánc (ALAPMAG)
         CALL KBWALK
@@ -896,6 +993,15 @@ BGWRITE:
         LD (HL),A
         XOR A
         LD (BGFROM),A
+        LD A,(IMAGSEEDT)
+        OR A
+        JR Z,BG_NIMG
+        LD (BGFROM),A           ; kepzelet-modul: az IMAGPICK tokennel indul
+        XOR A
+        LD (IMAGSEEDT),A
+        CALL BGWORD             ; a kepzelet-token az elso kiirt szo
+        JR BG_LOOP
+BG_NIMG:
         LD A,(ATTN)
         OR A
         JR NZ,BG_S2
@@ -1311,13 +1417,41 @@ DATASK:
         LD HL,PROF_DDAY
         LD A,(HL)
         OR A
-        RET NZ
+        JR NZ,DS_Y
 DS_L:   LD HL,TXTDATEQ
         CALL PRTLN
         CALL READLINE
         CALL PARSEDATE
         OR A
         JR Z,DS_L
+DS_Y:   LD HL,PROF_YR
+        LD A,(HL)
+        CP 0xFF
+        RET NZ
+DS_YL:  LD HL,TXTYEARQ
+        CALL PRTLN
+        CALL READLINE
+        CALL PARYEAR
+        OR A
+        JR Z,DS_YL
+        RET
+
+; PARYEAR: a BLINE egy eves szamot olvas (0..99); siker eseten A = 1
+; es tarolja PROF_YR-ba, egyebkent A = 0
+PARYEAR:
+        LD HL,BLINE
+        CALL SKNPC
+        LD A,(HL)
+        OR A
+        JR Z,PY_N
+        CALL RDNUM
+        OR A
+        JR Z,PY_N
+        LD A,E
+        LD (PROF_YR),A
+        LD A,1
+        RET
+PY_N:   XOR A
         RET
 
 ; PARSEDATE: a BLINE "dd mm" mintajat vizsgalja; sikernel A = 1
@@ -1352,6 +1486,7 @@ PARSEDATE:
         JR NC,PD_N
         LD A,E
         LD (MONNOW),A
+        CALL PARYEAR            ; ev: ha nincs a sorban, PROF_YR marad
         LD HL,PROF_DDAY
         LD A,(DAYNOW)
         LD (HL),A
@@ -1696,7 +1831,60 @@ FS_S3:  LD A,(HL)
         INC HL
         POP BC
         JR FS_L
-FS_0:   XOR A
+FS_0:   LD HL,BLINE
+        LD DE,WTAB
+        CALL KWGTAB
+        JR Z,FS_T
+        LD A,6
+        LD (INTENT),A           ; "what day": naptar-valasz
+        RET
+FS_T:   LD HL,BLINE
+        LD DE,TIMTAB
+        CALL KWGTAB
+        JR Z,FS_I
+        LD A,7
+        LD (INTENT),A           ; "what time": ora-valasz
+        RET
+FS_I:   LD HL,BLINE
+        LD DE,IMAGTAB
+        CALL KWGTAB
+        RET Z
+        LD A,1
+        LD (IMAGF),A            ; kepzelt-modul aktiv (nem valtoztat INTENT-et)
+        RET
+
+; KWGTAB: DE = [szo][0]...[0] tabla (ures tetelemmel zarva); BLINE-ban keres;
+; A = 1, ha barmelyik szo benne van a sorban, kulonben 0; BC/DE/HL megmaradnak
+KWGTAB:
+        PUSH BC
+        PUSH DE
+        PUSH HL
+KGT_L:  LD A,(DE)
+        OR A
+        JR Z,KGT_N
+        PUSH DE
+        PUSH HL
+        LD HL,BLINE
+        CALL KWGET
+        POP HL
+        POP DE
+        OR A
+        JR NZ,KGT_Y
+KGT_S:  LD A,(DE)
+        INC DE
+        OR A
+        JR NZ,KGT_S
+        INC DE
+        JR KGT_L
+KGT_Y:  POP HL
+        POP DE
+        POP BC
+        LD A,1
+        RET
+KGT_N:  POP HL
+        POP DE
+        POP BC
+        XOR A
         RET
 
 ; KWGET: DE = kulcsszo, HL = sor; A = 1, ha a sorban van keresett szo;
@@ -1774,6 +1962,127 @@ SAVEMEM:
         LD A,(HL)
         LD HL,PROF_SVMON
         LD (HL),A
+        RET
+
+; ================= NAPTAR =================
+; DOWGET: A = 0..6 (0 = vasarnap), vagy 0xFF = nincs ev (PROF_YR = 0xFF);
+; Zeller-egyszerusites a 2000-2099 idosavra (J = 20 => 5J + J/4 7-tel osztva 0):
+; A = (nap + TAB13[m'] + K + K/4 + jan2000-korrektes) mod 7.
+; A TAB13 tablat a teljes 2000-2099 tartomanyra brute-force ellenoriztuk a
+; Python calendar moduljaval (36525 datum, 0 hiba).
+DOWGET:
+        LD HL,PROF_YR
+        LD A,(HL)
+        CP 0xFF
+        RET Z
+        LD B,A                  ; B = K
+        LD HL,PROF_DDAY
+        LD A,(HL)
+        LD C,A                  ; C = nap
+        XOR A
+        LD D,A                  ; Jan/Feb 2000-korrektes (0/1)
+        LD A,(PROF_DMON)
+        CP 3
+        JR C,DW_JF
+        LD L,A                  ; m' = honap
+        LD H,0
+        JR DW_TAB
+DW_JF:  LD A,B
+        OR A
+        JR NZ,DW_J1
+        LD B,99                 ; honapjan 2000: K = 99, dunykep +1
+        INC D
+        JR DW_J2
+DW_J1:  DEC B
+DW_J2:  LD A,(PROF_DMON)
+        ADD A,12
+        LD L,A
+        LD H,0
+DW_TAB: LD DE,TAB13
+        ADD HL,DE
+        LD A,(HL)               ; A = TAB13[m']
+        ADD A,C                 ; + nap
+        LD E,A                  ; E = TAB13 + nap
+        LD A,B                  ; A = K
+        AND A
+        RRA
+        AND A
+        RRA                     ; A = K/4 (logikai jobblepes nullzott carry-vel)
+        ADD A,B                 ; A = K + K/4
+        ADD A,E                 ; + TAB13 + nap
+        ADD A,D                 ; with the Jan 2000 correction
+        ADD A,6
+DW_MOD: CP 7
+        JR C,DW_E
+        SUB 7
+        JR DW_MOD
+DW_E:   RET
+
+; PRT2S: A = 0..99 ket decimalis szamjegykent a kepernyore (kurzor JTextre)
+PRT2S:
+        PUSH BC
+        PUSH DE
+        PUSH HL
+        LD E,A
+        XOR A
+        LD B,A
+P2_L:   LD A,E
+        CP 10
+        JR C,P2_D
+        SUB 10
+        LD E,A
+        INC B
+        JR P2_L
+P2_D:   LD A,B
+        ADD A,'0'
+        CALL SAFEPCHR
+        LD A,E
+        ADD A,'0'
+        CALL SAFEPCHR
+        POP HL
+        POP DE
+        POP BC
+        RET
+
+; DP_SHOW: a DOWGET altal visszaadott A-val 'it's <nap> <nn> <mm> <yy>' kiiras
+DP_SHOW:
+        PUSH BC
+        PUSH DE
+        PUSH HL
+        PUSH AF               ; a PRTLN torolja A-t, a napnevet meg kell orizni
+        LD HL,TXTDAYP
+        CALL PRTLN
+        POP AF
+        ADD A,A
+        ADD A,A
+        LD E,A
+        LD D,0
+        LD HL,DOWTAB
+        ADD HL,DE
+        CALL PRTLN
+        LD A,' '
+        CALL SAFEPCHR
+        LD A,(PROF_DDAY)
+        CALL PRT2S
+        LD A,' '
+        CALL SAFEPCHR
+        LD A,(PROF_DMON)
+        CALL PRT2S
+DP_N:   CALL NEWLINE
+        POP HL
+        POP DE
+        POP BC
+        RET
+
+; BOOTD: indulaskor ha a datum es az ev is megvan, kiirja az aktualis napnevet
+BOOTD:
+        LD A,(PROF_DDAY)
+        OR A
+        RET Z
+        CALL DOWGET
+        CP 0xFF
+        RET Z
+        CALL DP_SHOW
         RET
 
 ; DOY30: A = honap, C = nap -> nap-index az ev elejetol (30-dal szamol,
@@ -2224,8 +2533,12 @@ TXTYOU:     db "YOU",0
 TXTPCO:     db "PIOCO",0
 
 ; ---- EMLEKEZET tablak es szovegek ----
+; a TAB13/DOWTAB/TXTDAYP/TXTTIS/WTAB/TIMTAB/IMAGTAB/IMAGSEED tablak a
+; TADAT (0x6B00) blokkban vannak (motor/tadat.asm) — a motorzonan kivul
+
 ; FACTTAB: [kulcsszo][0][bitkod] ismetles, lezaras 0
-FACTTAB:    db "HEAD",0,0
+FACTTAB:
+            db "HEAD",0,0
             db "HURT",0,0
             db "ACHE",0,0
             db "SICK",0,1
@@ -2233,6 +2546,10 @@ FACTTAB:    db "HEAD",0,0
             db "FEVER",0,1
             db "HAPPY",0,2
             db "GLAD",0,2
+            db "SLEEP",0,3
+            db "TIRED",0,4
+            db "HUNGRY",0,5
+            db "ANGRY",0,6
             db 0
 ; NEGTAB: tagnalo szok, ezek eseten az ertek = 0
 NEGTAB:     db "NO",0
@@ -2246,7 +2563,8 @@ CLRTAB:     db "GONE",0
             db "OK",0
             db 0
 TXTNOTED:   db "[noted]",0
-TXTDATEQ:   db "enter date as dd mm:",0
+TXTDATEQ:   db "enter date as dd mm yy:",0
+TXTYEARQ:   db "enter year as yy:",0
 ASKH:       db "i remember head pain. better?",0
 ASKS:       db "i remember unwell. better?",0
 TXTABORT:   db "[abort]",0

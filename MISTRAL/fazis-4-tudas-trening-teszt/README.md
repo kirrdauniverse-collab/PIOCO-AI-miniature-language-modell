@@ -1,8 +1,8 @@
 # 4. fázis — Tudás, tréning, tesztelés (MISTRAL munkaterület)
 
-**Állapot:** futóvá tett vezérlés, generátor, emlékezet **és
-chat-napló/görgetés**. A `PIOCO.T81` **5907 B, 6 blokk**, kilencféle
-automatikus vizsgálat zöld.
+**Állapot:** futóvá tett vezérlés, generátor, emlékezet,
+chat-napló/görgetés **és naptár + képzelet-modul (v2.3)**. A `PIOCO.T81`
+**6755 B, 7 blokk**, minden automatikus vizsgálat zöld.
 
 ## Mappa
 
@@ -14,8 +14,12 @@ automatikus vizsgálat zöld.
   teljes billentyűzet ENTER-rel, bigramm-generátor 4 bites súlyokkal
 - `06-emlekezet-es-mentes.md` — 4 bájtos emlékrekordok a 0x6700-on,
   dátum-bekérés, fakt-felismerés, 14 napos elavulás, SHIFT+S
-- `07-chat-naplo-es-gorgetes.md` — **új**: CHAT-napló inverz fejlécekkel,
+- `07-chat-naplo-es-gorgetes.md` — CHAT-napló inverz fejlécekkel,
   sor-/oszlopkurzoros nyomtatómag, SHIFT+5/6 görgetés
+- `08-naptar-es-kepzelet.md` — **új** (v2.3): év-bekérés + hét-név számítás
+  (2000–2099, 36525 dátumra ellenőrzve), „what day"/„what time" intentek,
+  képzelet-modul (IF/WOULD/COULD/WISH → véletlen IMAGSEED-token), FACTTAB
+  kiegészítés, TADAT adattábla-blokk (0x6B00)
 
 ## Mit hozott a negyedik lépés?
 
@@ -27,6 +31,19 @@ automatikus vizsgálat zöld.
 - SHIFT+5/6: message-by-message böngésző (vissza/előre, bármely billentyű
   kilép), a legújabb üzenettel indul
 - válaszidő-mérés FRAMES-pillanatképpel, token-számláló a BGWORD-ben
+
+## Mit hozott az ötödik lépés (v2.3)?
+
+- év-bekérés (PROF_YR, opcionálisan a dátum-sorban is) + DOWGET hét-név
+  számítás a 2000–2099-es évszákra — a TAB13 tábla 36 525 dátumra
+  brute-force ellenőrizve (0 hiba)
+- „whate day"/„what time is it" válaszok (intent 6/7); ha nincs év, sima
+  generálásra esik vissza
+- képzelet-modul: IF/WOULD/COULD/WISH felismerés → véletlen
+  DREAM/HUMAN/MAYBE/SOMETHING token a generátor induló szavaként
+- FACTTAB új szavak (SLEEP/TIRED/HUNGRY/ANGRY, bitkód 3–6)
+- új TADAT blokk (0x6B00): a statikus táblák kikerültek a motorzónából
+  (motor: 4052 B, tartalék 44 B; reszletek: `08-naptar-es-kepzelet.md`)
 
 ## Mit hozott a harmadik lépés?
 
@@ -63,11 +80,12 @@ for p in science health retro astronomy cooking entertainment future learning \
 done
 cat kazetta/szotar.bin kazetta/bg.bin > kazetta/szotar_full.bin
 python3 eszkozok/eml_make.py kazetta/eml.bin 0:1:12:5 1:1:2:6
+python3 eszkozok/z80asm.py motor/tadat.asm kazetta/tadat.bin
 python3 eszkozok/t81_build.py kazetta/motor.bin kazetta/szotar_full.bin \
         kazetta/science.bin kazetta/PIOCO.T81 kazetta/science.bin SCIENCE \
-        kazetta/eml.bin
+        kazetta/eml.bin kazetta/tadat.bin
 python3 tesztek/ellenorzes.py kazetta/motor.bin kazetta/szotar_full.bin \
-        kazetta/PIOCO.T81 kazetta/bg.bin kazetta/eml.bin
+        kazetta/PIOCO.T81 kazetta/bg.bin kazetta/eml.bin kazetta/tadat.bin
 ```
 
 A kazettán a B4-ALAPMAG a tudás (most science), a B5-CSOMAG a cserélhető

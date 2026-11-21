@@ -25,7 +25,7 @@ MISTRAL/
 ## Nyelvi döntés
 
 A 4. fázistól a prototípus **angol nyelven** fut (tömörebb szótár:
-111 token / 740 B, ASCII-only, több szó fér be) — a magyar finomítás a
+129 token / 852 B, ASCII-only, több szó fér be) — a magyar finomítás a
 kiforrott modell után, motor-átírás nélkül:
 `fazis-4-tudas-trening-teszt/01-nyelvvaltas-dontes.md`.
 
@@ -35,3 +35,15 @@ kiforrott modell után, motor-átírás nélkül:
 - Fázisonként áttekinthető dokumentumok, rövid, tárgyilagos jelezéssel, ha a 16 KB
   valahol szűkös — mindig konkrét, működő alternatívával.
 - Minden fenti mappához (motor, szótár, chat, tudás) 50–150 bájt tartalék tartozik.
+
+## Jelenlegi állapot (v2.3)
+
+- `PIOCO.T81`: **6755 B / 7 blokk** — BOOT, MOTOR (4052 B), TADAT (125 B,
+  új), SZÓTÁR, ALAPMAG, CSOMAG, EMLÉKEZET
+- Szótár 129 token / 852 B, bigramtábla 655 B / 270 átmenet (4 bites súly)
+- Új a v2.3-ban: **naptár + év** (hetnév-számítás 2000–2099, 36525 dátumra
+  ellenőrizve), `what day` / `what time` intentek, **képzelet-modul**
+  (IF/WOULD/COULD/WISH → véletlen mag-token a generátorban), FACTTAB bővítés
+  (SLEEP/TIRED/HUNGRY/ANGRY). Részletek:
+  `fazis-4-tudas-trening-teszt/08-naptar-es-kepzelet.md`
+- Következő lépés: **trigram-tábla** (trigram_train.py + TRILOOK a motorban)
