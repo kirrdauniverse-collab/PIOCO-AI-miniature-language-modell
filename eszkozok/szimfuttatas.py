@@ -80,8 +80,8 @@ def main():
 
     sim = Z80Sim()
     sim.mem[0x4082:0x4082 + len(boot)] = boot
-    sim.SP = 0xFFFE
-    sim.push(0)              # RET-sentinel
+    sim.SP = 0x5400           # D-3.5: a boot saját vereme a MOTOR zóna tetején
+    sim.push(0)               # RET-sentinel
     sim.PC = 0x4082
     sim.hooks[0x034C] = inbyte
     steps = sim.run()
@@ -130,9 +130,9 @@ def main():
 
     # --- 6. írás-zóna-ellenőrzés ---
     zones = [(0x400C, 0x400F), (0x4082, 0x41FF), (0x4200, 0x4539),
-             (0x4600, 0x4600 + len(motor0) - 1),
+             (0x4600, 0x53FF),           # MOTOR kód + a saját verem teteje (D-3.5)
              (0x5400, 0x5CFF), (0x6300, 0x6AFF), (0x6B00, 0x6B3F),
-             (0x7F00, 0x7FFF), (0xFF00, 0xFFFF)]
+             (0x7F00, 0x7FFF)]
     bad = [a for a, _ in sim.writes if not any(lo <= a <= hi for lo, hi in zones)]
     assert not bad, f"zónaszért írás: {[hex(a) for a in bad[:8]]}"
     nw = len(sim.writes)

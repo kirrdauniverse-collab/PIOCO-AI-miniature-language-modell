@@ -23,6 +23,8 @@ def main():
     end = 0x4082 + len(code)
     assert end <= BOOT_END, f"stage-1 túl nagy: vége 0x{end:04X} > 0x4200"
     assert lab["BOOT"] == 0x4082 and lab["LOADBLK"] < BOOT_END
+    n76 = code.count(0x76)
+    assert n76 == 0, f"boot.bin {n76} db 0x76 bájtot tartalmaz — REM-hordozás miatt tiltott (l. boot.asm, D-3.6)"
     with open(os.path.join(ADAT, "boot.bin"), "wb") as f:
         f.write(code)
     print(f"stage-1 (boot.bin):  {len(code)} B (0x4082–0x{end-1:04X}, {BOOT_END-end} B ráhagyás)")

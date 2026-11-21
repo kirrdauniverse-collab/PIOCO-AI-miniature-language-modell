@@ -7,21 +7,31 @@
 ; Forrás-anchors (hitelesítve, l. FEJLESZTESI-NAPLO.md):
 ;   - ROM IN-BYTE: 0x034C (a bájt a C regiszterben) — ZX81 ROM listing
 ;   - gépi kód belépési cím: 16514 = 0x4082 (REM sor) — andrivet
-;   - saját D_FILE UI: 0x4200, 24 × (32 + 0x76) = 792 B — fázis-2 5.2
-;   - PERSIST: 0x4100, mágia 'P','C', verzió, CRC-16 (0x1021, 0xFFFF)
+;   - saját D_FILE UI: 0x4200, ROM-standard 25×33 + 1 = 826 B — 5.2 (D-3.4)
+;   - PERSIST: 0x7F00, mágia 'P','C', verzió, CRC-16 (0x1021, 0xFFFF) — D-3.3
 ;
 ; NYÍLT TÉTELEK (emulátor-ellenőrzés):
 ;   - IN-BYTE szinkron/pilot-kezelés blokkhatárokon (szalag mód)
 ;   - IN-BYTE regiszter-megőrzése (HL/DE feltételezett; AF felülírása biztos)
 ;
-; Menet: PERSIST init → üzemmód (BOOTMODE):
+; Menet: veremváltás (LD SP,0x5400 — D-3.5: a ROM vereme a RAM tetején
+;   áll, a PERSIST-init nullázása összeomlasztaná; a saját verem a
+;   MOTOR zóna tetején fut, bőven a kód fölött) → PERSIST init →
+;   üzemmód (BOOTMODE):
 ;   0 = SZALAG: következő blokk (típus 2, MOTOR) betöltése 0x4600-ra;
-;   1 = REZIDENS (.P terjesztés): a REM-testek másolása a végleges
-;       címekre (RESCOPY) — szalagolvasás nélkül.
+;   1 = REZIDENS (.P terjesztés): a .P adatterületének (a program után,
+;   az összezsugorított képernyő előtt) másolása a végleges címekre
+;   (RESCOPY) — szalagolvasás nélkül.
 ; → képernyő-nullázás (ROM-standard 25 sor + záró 0x76 = 826 B) →
 ;   D_FILE/DF_CC sysvar-mutatók a saját képernyőre (címek hitelesítve a
 ;   zmakebas ZX81 fejléc-receptjéből: D_FILE @0x400C, DF_CC @0x400E) →
-;   átugrás a 0x4600-ra. A további blokkokat a stage-2 motor hívja be.
+;   átugrás a 0x4600-ra.
+;
+; REM-HORDOZÁSI KORLÁT (D-3.6, a C/6-os hibajelentés utómunkálata):
+;   a boot az 1. soros REM-testben utazik, a 0x76 bájt a sorban
+;   közvetlenül nem szerepelhet (a ROM sornak tekintené) — a kód
+;   0x76-mentességét az epites.py is ellenőrzi; a képernyő 0x76-os
+;   bájtjai ezért aritmetikailag állnak elő (0x3B + RLCA = 0x76).
 ; ============================================================
 
 INBYTE  EQU 0x034C        ; ROM: bájt a szalagról → C
@@ -33,40 +43,46 @@ STG2    EQU 0x4600
 
         ORG 0x4082
 BOOT:
+        LD SP,0x5400           ; D-3.5: saját verem a MOTOR zóna tetején
         CALL PERSISTINIT
         LD A,(BOOTMODE)
         OR A
         JR Z,BTAPE
-        CALL RESCOPY           ; rezidens mód: REM-testek → végleges címek
+        CALL RESCOPY           ; rezidens mód: .P adatterület → végleges címek
         CALL SCRFILL
         JR BDFSET
 BTAPE:  CALL LOADBLK           ; szalag mód: PIOCOTIP2 → 0x4600
         CALL SCRFILL
-BDFSET: LD HL,0x400C           ; D_FILE sysvar ← 0x4200
+BDFSET: LD HL,0x400D           ; D_FILE ← 0x4200 (felső bájt először, hogy a
+        LD (HL),0x42           ; NMI felfeslett mutatót ne lásson)
+        DEC HL
         LD (HL),0x00
-        INC HL
+        LD HL,0x400F           ; DF_CC ← 0x4201 (ugyanígy)
         LD (HL),0x42
-        LD HL,0x400E           ; DF_CC sysvar ← 0x4201
+        DEC HL
         LD (HL),0x01
-        INC HL
-        LD (HL),0x42
         JP STG2
 
 ; ---- képernyő: ROM-standard 25 sor × (32×0x00 + 0x76) + záró 0x76 = 826 B ----
 ; (24 tartalmi sor + 1 alsó sor; a záró 0x76 @0x4539 a megjelenítő
 ;  leállító-bájtja — nélküle a NMI átfutna a 0x76-mentes scratch-en)
+; KORLÁT (D-3.6): 0x76 közvetlen bájtként nem szerepelhet a kódban
+; (REM-hordozás) — ezért állítjuk elő aritmetikailag: 0x3B + RLCA = 0x76
 SCRFILL:
         LD HL,DFILE
+        LD A,0x3B
+        RLCA                   ; A = 0x76 (0x3B balra forgatva)
+        LD D,A                 ; D = sorzáró bájt
         LD B,25
 SCRL:   LD C,32
 SCRC:   LD (HL),0
         INC HL
         DEC C
         JR NZ,SCRC
-        LD (HL),0x76
+        LD (HL),D
         INC HL
         DJNZ SCRL
-        LD (HL),0x76           ; záró stop-bájt
+        LD (HL),D              ; záró stop-bájt
         INC HL
         RET
 
@@ -198,12 +214,16 @@ RD4L:   CALL INBYTE
         DJNZ RD4L
         RET
 
-; ---- rezidens mód: a REM-testek másolása a végleges címekre ----
-; sorrend-KÉNYSZER: ALAPMAG → PACK → SZÓTÁR → MOTOR. Indoklás: a SZÓTÁR
-; célzónája (0x5400+) átfedi az ALAPMAG/PACK REM-forrásait, a MOTOR célja
-; (0x4600) pedig a SZÓTÁR forrását — mindegyik csak már kimásolt
-; területet írhat felül. A @PG*@ immediate-eket a pgen.py patcheli;
-; BLKCPY: HL = forrás, DE = cél, BC = hossz
+; ---- rezidens mód: a .P adatterületének másolása a végleges címekre ----
+; a MOTOR, SZÓTÁR, ALAPMAG és CSOMAG a .P-ben a program UTÁN, az össze-
+; zsugorított képernyő ELŐTT, egyben helyezkedik el — bármilyen bájtot
+; tartalmazhatnak (a sorkiértékelés nem érinti őket; a REM-hordozás
+; 0x76-os korlátja itt nem áll fenn — ezért költöztek ki a REM-sorokból,
+; l. D-3.6).
+; sorrend-KÉNYSZER: ALAPMAG → PACK → SZÓTÁR → MOTOR (a MOTOR célja,
+; 0x4600, a hordozott adatok közepébe esik — csak utoljára jöhet).
+; a @PG*@ immediate-eket a pgen.py patcheli; BLKCPY: HL = forrás,
+; DE = cél, BC = hossz
 RESCOPY:
 SRC_ALAP: LD HL,0x0000         ; @PGALAP@ — ALAPMAG REM-test címe
         LD DE,0x6300

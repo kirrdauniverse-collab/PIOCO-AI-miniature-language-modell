@@ -3,7 +3,7 @@
 > Miniatűr, **valóban generáló** AI nyelvi modell a Sinclair ZX81-hez (16 KB RAM) —
 > egyetlen összefüggő, több betöltési sávot tartalmazó **.T81** kazettafájlban.
 
-**Állapot:** 🟢 **3. fázis — ELKÉSZÜLT AZ ELSŐ KIPRÓBÁLHATÓ VÁLTOZAT: `kazetta/pioco-0.1.p`** (valódi ZX81 .P fájl: minden emulátorban betölthető és futtatható) · prototípus-nyelv: **angol** (D-3.2) · PERSIST: 0x7F00 (D-3.3)
+**Állapot:** 🟢 **3. fázis — KIPRÓBÁLHATÓ VÁLTOZAT v2: `pioco-by-GLM-0.1.p`** (a C/6-javítás után; a belépő sor bájtonként a zmakebas referenciával azonos) · prototípus-nyelv: **angol** (D-3.2) · PERSIST: 0x7F00 (D-3.3) · **névkonvenció: minden átadott fájl `pioco-by-GLM-<verzió>…`** (2026-11-21-től)
 
 ## Mi ez?
 
@@ -38,7 +38,7 @@ ingerlésben és vitában is saját megfogalmazással, több körön át emléke
 | --- | --- | --- |
 | 1 | Ötlet és koncepció | ✅ kész (2026-11-21) |
 | 2 | Tervezés, működés és dizájn — végleges memóriatérkép, bitmezők, sávformátum, képernyők, vezérlők, Agent-parancsok | ✅ kész (2026-11-21) |
-| 3 | Kódolás és csomagolás — Z80 motor, PC-s eszközök, .T81 összeállítás | 🔵 3. szelet kész (2026-11-21): építés + blokkok + Z80-szimulációs végpont-teszt zöld + **kipróbálható rezidens .P terjesztés** (RESCOPY; külső p2txt/rem2bin validációval); következik: INPUT + Agent-kör, .T81 multiload |
+| 3 | Kódolás és csomagolás — Z80 motor, PC-s eszközök, .T81 összeállítás | 🔵 4. szelet kész (2026-11-21): végpont-tesztek + kipróbálható rezidens .P, **a C/6-os valós hibajelentés után 3 javítással (D-3.5–3.7), zmakebas-referenciával bájtonként validálva**; következik: INPUT + Agent-kör, .T81 multiload |
 | 4 | Tudásbázis, tréning és tesztelés — alaptudás + témacsomagok, emulátoros ellenőrzés | ⬜ |
 
 ## Repó struktúra
@@ -51,7 +51,8 @@ PIOCO-AI/
 │                z80sim (Z80-szimulátor), szimfuttatas (szalag-mód végpont-teszt),
 │                pgen (rezidens .P generátor), pfuttatas (virtuális emulátor-teszt)
 ├── tudas/       alaptudás: angol prototípus-korpusz + generált szótár-lista
-└── kazetta/     pioco-0.1.p (KIPRÓBÁLHATÓ!), pioco-0.1.tape, adat/, kepernyokep_*.txt
+└── kazetta/     pioco-0.1.p (KIPRÓBÁLHATÓ! kézbesített név: pioco-by-GLM-0.1.p),
+                 pioco-0.1.tape, adat/, kepernyokep_*.txt
 ```
 
 ## Célplatform

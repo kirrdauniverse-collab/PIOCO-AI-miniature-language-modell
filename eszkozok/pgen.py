@@ -1,22 +1,25 @@
 # -*- coding: utf-8 -*-
 """PIOCO AI — pgen.py: REZIDENS .P terjesztési fájl (pioco-0.1.p) generálása.
 
-A .P formátum FORRÁS-HITELESÍTVE (zx81-utils p2txt/rem2bin + a zmakebas
-ZX81 mód forráskódja alapján, 2026-11-21):
-  .P = [116 B (0x74) sysvars, a 0x4009-től] [program] [25×0x76 össze-
-  zsugorított képernyő] [0x80 VARS-záró] — a fájl itt ér véget; a ROM
-  LOAD a 0x80-nál áll le. A fejléc sysvar-címei és értékei a zmakebas
-  receptjét követik (D_FILE @0x400C, DF_CC @0x400E, CDFLAG=0x40=SLOW …).
+v2 — a C/6-os hibajelentés (valódi emulátorból) utáni áttervezés:
+  - a `RAND USR 16514` sor számformátuma a zmakebas forrása szerint készül:
+    a szám JEGYEI karakterként a sorban + 0x7E jelölő + 5 B lebegőpontos
+    érték (dbl2spec) — a jegyek hiánya tette a ROM kiértékelője számára
+    hibás kifejezéssé a sort (C/6 a 6. sornál);
+  - az adatok (motor, szótár, alapmag, pack) NEM REM-sorokban, hanem a
+    program UTÁNI adatterületen utaznak (az összezsugorított képernyő
+    előtt) — bármilyen bájtot tartalmazhatnak (a régi ROM REM-korlátja,
+    a beágyazott 0x76, ezért nem érinti őket) — D-3.6;
+  - a boot maga marad az 1. sor REM-testében: 0x76-mentes kód
+    (a képernyő 0x76-os bájtjait a boot aritmetikailag állítja elő).
 
-A terjesztés a klasszikus REM-terjesztés:
-  1 REM <boot.bin + NOP-kitöltés>   — a gépi kód @ 0x4082 (16514)
-  2 REM <motor0.bin>                } a boot RESCOPY rutinja másolja
-  3 REM <szotar.bin>                } a végleges címekre (BOOTMODE=1)
-  4 REM <alapmag.bin>               }
-  5 REM <pack: 64×0>                }
-  6 RAND USR 16514                  — szám: 0x7E + 5 B FP (dbl2spec)
-A sorok formátuma: [sorszám BE:2][hossz LE:2][törzs…0x76], a hossz a
-törzzsel és a záró 0x76-tal együtt.
+A .P formátum (forrás-hitelesítve a zx81-utils p2txt/rem2bin és a
+zmakebas ZX81 mód forrásakódjából):
+  .P = [116 B (0x74) sysvars a 0x4009-től][program][adatterület]
+       [25×0x76 összezsugorított képernyő][0x80 VARS-záró]
+Sorformátum: [sorszám BE:2][hossz LE:2][törzs…0x76] (a hossz a 0x76-tal).
+A repóbeli kimenet neve marad pioco-0.1.p; a felhasználónak átadott
+másolat a pioco-by-GLM-0.1.p nevet viseli (névkonvenció, 2026-11-21).
 """
 import os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -26,13 +29,14 @@ BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ADAT = os.path.join(BASE, "kazetta", "adat")
 OUT = os.path.join(BASE, "kazetta", "pioco-0.1.p")
 
-PROG = 0x407D          # a programterület kezdete (REM-törzs: 0x4082 = 16514)
-L1_BODY = 512          # az 1. sor REM-teste (boot + NOP-kitöltés) — fix méret
-REM, RAND, USR = 0xEA, 0xF9, 0xD4
+PROG = 0x407D          # programterület kezdete (REM-törzs: 0x4082 = 16514)
+REM, RAND, USR, NUMMARK = 0xEA, 0xF9, 0xD4, 0x7E
 
 def dbl2spec(num):
-    """ZX81 lebegőpontos kódolás — a zmakebas dbl2spec() hű átírása
-    (ZX81 módban nincs small-integer rövid út, mindig FP)."""
+    """ZX81 lebegőpontos kódolás — a zmakebas dbl2spec() hű átírása,
+    a 33. bitre való kerekítéssel és a jelbit nullázásával (utóbbi
+    kritikus: beágyazott számban a mantissza felső bitje jelbit, és ha
+    1 marad, a ROM negatív számként értelmezi — ez okozta a C/6-ot)."""
     exp, num = 0, float(abs(num))
     while num >= 1.0:
         num /= 2.0
@@ -46,10 +50,12 @@ def dbl2spec(num):
     for _ in range(32):
         man = (man << 1) | int(num)
         num = (num - int(num)) * 2.0
+    if int(num) and man != 0xFFFFFFFF:        # kerekítés a 33. bitre
+        man = (man + 1) & 0xFFFFFFFF
+    man &= 0x7FFFFFFF                          # jelbit törlése
     return e, man
 
 def line(n, body):
-    assert len(body) + 1 <= 0xFFFF
     ln = len(body) + 1
     return bytes([(n >> 8) & 0xFF, n & 0xFF, ln & 0xFF, (ln >> 8) & 0xFF]) + body + b"\x76"
 
@@ -59,69 +65,47 @@ def main():
     szotar = open(os.path.join(ADAT, "szotar.bin"), "rb").read()
     alapmag = open(os.path.join(ADAT, "alapmag.bin"), "rb").read()
     pack = bytes(64)
-    assert len(szotar) == 2304 and len(alapmag) == 2048, "bináris méreteltérés a boot.asm konstansaihoz"
-    # Megjegyzés: a REM-testekben bármilyen bájt megengedett (a sorfeldolgozás
-    # hosszvezérelt — a boot saját LD (HL),0x76 kódja is tartalmaz 0x76-ot);
-    # a D_FILE-ra futás közben csak a print-tölcsör íráskódokat enged.
-    for name, blob in [("szotar", szotar), ("alapmag", alapmag)]:
-        n76 = blob.count(0x76)
-        if n76:
-            print(f"  info: {name} {n76} db 0x76 adatbájtot tartalmaz (REM-testben engedélyezett)")
-    assert len(boot) <= L1_BODY, f"boot túl nagy a {L1_BODY} B-es REM-testhez"
+    assert len(szotar) == 2304 and len(alapmag) == 2048, "bináris méreteltérés"
+    assert 0x76 not in boot, "boot.bin nem 0x76-mentes (epites.py is ellenőrzi)"
 
-    # --- REM-testek címei a programterületen (determinisztikus elrendezés) ---
-    l1 = L1_BODY + 6                     # hdr 4 + REM token 1 + test + 0x76
-    l2, l3, l4 = len(motor0) + 6, len(szotar) + 6, len(alapmag) + 6
-    l5 = len(pack) + 6
-    src_mot = PROG + l1 + 5
-    src_szo = PROG + l1 + l2 + 5
-    src_alap = PROG + l1 + l2 + l3 + 5
-    src_pack = PROG + l1 + l2 + l3 + l4 + 5
-    prog_len = l1 + l2 + l3 + l4 + l5 + 13   # 13. sor: hdr 4 + törzs 8 + 0x76
-    d_file = PROG + prog_len
-
-    # --- másolási sorrend statikus ellenőrzése (a boot.asm sorrendjével) ---
-    # minden forrástartománynek mentesnek kell lennie a KORÁBBAK célterületeitől
-    copies = [("ALAPMAG", src_alap, 0x6300, len(alapmag)),
-              ("PACK", src_pack, 0x6B00, len(pack)),
-              ("SZOTAR", src_szo, 0x5400, len(szotar)),
-              ("MOTOR", src_mot, 0x4600, len(motor0))]
-    done_dst = []
-    for name, s, d, n in copies:
-        for (pd, pn) in done_dst:
-            assert not (s < pd + pn and pd < s + n), \
-                f"{name} forrása (0x{s:04X}) átfedi egy korábbi célt (0x{pd:04X}) — sorrend hibás"
-        done_dst.append((d, n))
-
-    # --- boot patchelése: RESCOPY források, motorhossz, rezidens mód ---
-    b = bytearray(boot)
-    off = lambda lbl: blab[lbl] - 0x4082
-    wr16 = lambda at, v: (b.__setitem__(at, v & 0xFF), b.__setitem__(at + 1, (v >> 8) & 0xFF))
-    wr16(off("SRC_SZO") + 1, src_szo)      # LD HL,nn → immediate a címke+1-nél
-    wr16(off("SRC_ALAP") + 1, src_alap)
-    wr16(off("SRC_PACK") + 1, src_pack)
-    wr16(off("SRC_MOT") + 1, src_mot)
-    wr16(off("SRC_MOTN") + 1, len(motor0))
-    b[off("BOOTMODE")] = 1                  # rezidens mód
-    body1 = bytes(b) + b"\x00" * (L1_BODY - len(b))   # NOP-kitöltés
-
-    # --- program összeállítása ---
-    prog = line(1, bytes([REM]) + body1)
-    prog += line(2, bytes([REM]) + motor0)
-    prog += line(3, bytes([REM]) + szotar)
-    prog += line(4, bytes([REM]) + alapmag)
-    prog += line(5, bytes([REM]) + pack)
+    # --- 2. sor törzse: RAND USR 16514 (jegyek karakterként + 0x7E + FP) ---
+    digits = bytes([0x1C + int(c) for c in "16514"])       # ZX81 számjegykódok
     e, man = dbl2spec(16514)
-    numtok = bytes([0x7E, e, (man >> 24) & 0xFF, (man >> 16) & 0xFF, (man >> 8) & 0xFF, man & 0xFF])
-    prog += line(6, bytes([RAND, USR]) + numtok)
-    assert len(prog) == prog_len, f"{len(prog)} != {prog_len}"
+    numtok = bytes([NUMMARK, e, (man >> 24) & 0xFF, (man >> 16) & 0xFF,
+                    (man >> 8) & 0xFF, man & 0xFF])
+    l2body = bytes([RAND, USR]) + digits + numtok
+    assert 0x76 not in l2body and e == 0x8F, "hibás számkódolás a 2. sorban"
+
+    # --- patchek: RESCOPY források + motorhossz + rezidens mód ---
+    # pad-ciklus: ha valamelyő immediate-érték 0x76-os bájtba esne, 1 bájtos
+    # csúsztatással arrébb toljuk az adatterület kezdetét a program után
+    off = lambda lbl: blab[lbl] - 0x4082
+    for k in range(0, 256):
+        b = bytearray(boot)
+        wr16 = lambda at, v: (b.__setitem__(at, v & 0xFF), b.__setitem__(at + 1, (v >> 8) & 0xFF))
+        ds = PROG + len(boot) + 6 + 18 + k          # program (2 sor) után
+        wr16(off("SRC_ALAP") + 1, ds + len(motor0) + len(szotar))
+        wr16(off("SRC_PACK") + 1, ds + len(motor0) + len(szotar) + len(alapmag))
+        wr16(off("SRC_SZO") + 1, ds + len(motor0))
+        wr16(off("SRC_MOT") + 1, ds)
+        wr16(off("SRC_MOTN") + 1, len(motor0))
+        b[off("BOOTMODE")] = 1                      # rezidens mód
+        if 0x76 not in b:
+            break
+    else:
+        raise AssertionError("az adatkezdő-cím 0x76-mentesítése 256 lépésben sem sikerült")
+    data_start, d_file = ds, ds + len(motor0) + len(szotar) + len(alapmag) + len(pack)
+    data = motor0 + szotar + alapmag + pack
+    prog = line(1, bytes([REM]) + bytes(b)) + line(2, l2body)
+    prog_len = len(prog)
+    assert prog_len == len(boot) + 6 + 18, "programhossz-eltérés"
 
     # --- sysvars fejléc (zmakebas recept) ---
     hd = bytearray(0x74)
     hw = lambda at, v: (hd.__setitem__(at, v & 0xFF), hd.__setitem__(at + 1, (v >> 8) & 0xFF))
-    hw(3, d_file)            # D_FILE
+    hw(3, d_file)            # D_FILE — az adatterület után
     hw(5, d_file + 1)        # DF_CC
-    hw(7, d_file + 25)       # VARS (a 25 B-es összezsugorított képernyő után)
+    hw(7, d_file + 25)       # VARS (az összezsugorított képernyő után)
     hw(11, d_file + 26)      # E_LINE
     hw(13, d_file + 25)      # CH_ADD
     hw(17, d_file + 26)      # STKBOT
@@ -129,39 +113,43 @@ def main():
     hw(22, 0x405D)           # MEM
     hd[25] = 2               # DF_SZ
     hw(26, 1)                # S_TOP
-    hd[28] = 0xFF            # LAST_K (3 bájt: FF FF FF)
+    hd[28] = 0xFF            # LAST_K (3 bájt)
     hw(29, 0xFFFF)
     hd[31] = 55              # MARGIN
-    hw(32, d_file)           # NXTLIN
+    hw(32, data_start)       # NXTLIN — a program utáni első bájt
     hw(39, 0x0C8D)           # T_ADDR
     hw(43, 0xFFFF)           # FRAMES
     hd[47] = 0xBC            # PR_CC
     hd[48], hd[49] = 33, 24  # S_POSN
     hd[50] = 0x40            # CDFLAG — SLOW mód
 
-    out = bytes(hd) + prog + b"\x76" * 25 + b"\x80"
+    out = bytes(hd) + prog + bytes(k) + data + b"\x76" * 25 + b"\x80"
     with open(OUT, "wb") as f:
         f.write(out)
 
-    # --- önteszt: a fájl visszapolgatása (hosszvezérelt sorbejárás) ---
-    assert out[0x74 + 5:0x74 + 5 + len(boot)] == bytes(b), "REM-törzs nem a 0x4082-re esik"
+    # --- önteszt: a fájl visszapolgatása ---
+    assert out[0x74 + 5:0x74 + 5 + len(b)] == bytes(b), "REM-törzs nem a 0x4082-re esik"
     p, lineno = 0x74, []
-    for _ in range(6):
+    for _ in range(2):
         n = (out[p] << 8) | out[p + 1]
         ln = out[p + 2] | (out[p + 3] << 8)
+        body = out[p + 4:p + 4 + ln - 1]
+        assert out[p + 4 + ln - 1] == 0x76 and 0x76 not in body, f"{n}. sor: 0x76 a törzsben"
         lineno.append(n)
         p += 4 + ln
-    assert lineno == [1, 2, 3, 4, 5, 6], f"sorszámok hibásak: {lineno}"
-    assert p == 0x74 + prog_len and out[p:p + 25] == b"\x76" * 25 and out[p + 25] == 0x80, \
-        "a program után nem az összezsugorított képernyő + 0x80 záró áll"
-    # szám-visszaolvasás: 16514 == 2^14 + 130 → standard alak 0.50396…×2^15
-    assert e == 0x8F, f"exponens eltérés: {e:#04x}"
+    assert lineno == [1, 2], f"sorszámok hibásak: {lineno}"
+    assert p == 0x74 + prog_len and out[p:p + k] == bytes(k), "pad eltérés"
+    # a fájlban az adat ténylegesen a kiszámított címeken áll-e?
+    foff = lambda addr: addr - 0x4009            # fájl-offset = cím − 0x4009
+    for name, src, blob in [("motor", data_start, motor0), ("szótár", data_start + len(motor0), szotar),
+                            ("alapmag", data_start + len(motor0) + len(szotar), alapmag),
+                            ("pack", data_start + len(motor0) + len(szotar) + len(alapmag), pack)]:
+        assert out[foff(src):foff(src) + len(blob)] == blob, f"{name}: az adat nem a kiszámított címen"
+    assert out[-26:] == b"\x76" * 25 + b"\x80", "záró (képernyő + 0x80) eltérés"
     print(f"OK: {OUT} ({len(out)} B)")
-    print(f"  program {prog_len} B @0x{PROG:04X} (6 sor), D_FILE=0x{d_file:04X}, "
-          f"REM-testek: motor@0x{src_mot:04X}, szótár@0x{src_szo:04X}, "
-          f"alapmag@0x{src_alap:04X}, pack@0x{src_pack:04X}")
-    print(f"  boot {len(boot)} B (patchelve), RAND USR 16514 = 7E {e:02X} "
-          f"{(man >> 24) & 0xFF:02X} {(man >> 16) & 0xFF:02X} {(man >> 8) & 0xFF:02X} {man & 0xFF:02X}")
+    print(f"  program {prog_len} B @0x{PROG:04X} (1 REM {len(b)} B + 2 RAND USR 16514), "
+          f"pad {k} B, adat {len(data)} B @0x{data_start:04X}, D_FILE=0x{d_file:04X}")
+    print(f"  REM-törzs 0x76-mentes; a 2. sor száma: {' '.join(f'{x:02X}' for x in digits + numtok)}")
 
 if __name__ == "__main__":
     main()

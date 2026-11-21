@@ -1,4 +1,4 @@
-PIOCO AI 0.1 — a pioco-0.1.p virtuális emulátor-futása után
+PIOCO AI 0.1 — a pioco-by-GLM-0.1.p virtuális emulátor-futása után
 +--------------------------------+
 |                                |
 |                                |
