@@ -15,6 +15,7 @@ RP2 = {"BC": 0xC5, "DE": 0xD5, "HL": 0xE5, "AF": 0xF5}
 POP = {"BC": 0xC1, "DE": 0xD1, "HL": 0xE1, "AF": 0xF1}
 COND_JR = {"NZ": 0x20, "Z": 0x28, "NC": 0x30, "C": 0x38}
 COND_JP = {"NZ": 0xC2, "Z": 0xCA, "NC": 0xD2, "C": 0xDA}
+COND_RET = {"NZ": 0xC0, "Z": 0xC8, "NC": 0xD0, "C": 0xD8}
 ALU = {"ADD": 0x80, "ADC": 0x88, "SUB": 0x90, "SBC": 0x98,
        "AND": 0xA0, "XOR": 0xA8, "OR": 0xB0, "CP": 0xB8}
 ALU_N = {"ADD": 0xC6, "ADC": 0xCE, "SUB": 0xD6, "SBC": 0xDE,
@@ -211,8 +212,8 @@ class Asm:
             if not a:
                 return self.emit(0xC9)
             c = am[0]
-            if c in COND_JP:
-                return self.emit(COND_JP[c] + 0x08)
+            if c in COND_RET:
+                return self.emit(COND_RET[c])
         if op in ("JP", "CALL"):
             cond = None
             tgt = ""
@@ -253,6 +254,11 @@ class Asm:
             return self.do_ld(am)
         if op == "ADD" and len(am) >= 2 and am[0] in RP:
             return self.emit(0x09 | RP[am[1]] << 4)
+        if op in ("ADC", "SBC") and len(am) >= 2 and am[0] == "HL":
+            base = 0x4A if op == "ADC" else 0x42
+            if am[1] not in RP:
+                raise AsmError(f"{op} HL,rr várt: {a}")
+            return self.emit(0xED, base | RP[am[1]] << 4)
         if op in ALU:
             if len(am) == 2:
                 alu_prev = am[0]

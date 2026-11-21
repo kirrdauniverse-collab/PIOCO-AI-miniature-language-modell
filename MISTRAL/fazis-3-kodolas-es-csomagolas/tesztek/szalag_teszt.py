@@ -27,7 +27,6 @@ from zx81sim import ZX81Sim, stream_to_ear, set_tape   # noqa: E402
 E_LINE = 0x406D        # a kep vege: ennyiig kell bejoenie a sajatoltnak
 NEV = b"PIO"
 
-
 def rom_helye():
     if len(sys.argv) > 1 and os.path.exists(sys.argv[1]):
         return sys.argv[1]

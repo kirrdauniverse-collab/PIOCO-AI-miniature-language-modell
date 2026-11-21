@@ -68,3 +68,39 @@ Bájt:    0     1      2      3      4      5      6      7      8     9…
   megkülönböztethető marad.
 - A PROFIL-blokkot a mentő rutin **kizárja az írásból** — a
   PROFIL változatlanul marad, csak az EMLÉKEZET-blokk íródik.
+
+---
+
+## Frissítés (v2.5 — EO81 single-image, implementált és tesztelt)
+
+A fenti többblokkos-formátumterv **nem volt betölthető** a valódi ZX81 ROM-mal:
+a LOAD rutin (NEXT-PROG 0x0347 → IN-PROG 0x037B) **csak egyetlen összefüggő
+képet** vesz, 0x4009-től a szalagon lévő E_LINE-ig. A régi design e miatt adott
+**C/6 (out of range)** hibát — nem a BASIC-programok hibája volt.
+
+Az implementált v2.5 `.T81` (EO81 konténer):
+
+```
+b"EO81" | [32 B név | 16 B ASCII méret | adat] ...blokkok...
+```
+
+- **Fő blokk `PIOCO`:** stream = `b"PIOCO"` + `0x80`-lezáró bájt + **kép**
+  (15 863 B = `0x4009..0x7E00`), valódi ROM SAVE-kének megfelelően:
+  - boot-sablon (0x4009–0x42C2-ig, 698 B, `sablon_keszit.py`),
+  - `10 RAND USR 18176` launcher-sor `0x406D`-nél,
+  - szintetikus teljes 24 soros üres képernyő (D_FILE=0x4083, sorlezáró 0x76-értékek épek),
+  - VARS (0x439C) = üres 0x80; edit-stub (7F 76 00) = 0x439D; STKBOT=STKEND=0x439F,
+  - zónák: MOTOR 0x4700, SZÓTÁR 0x5700, TADAT 0x6B00, ALAPMAG 0x6C00, TARTALEK 0x7D00,
+  - rendszerváltozó-patchek (E_PPC=10, D_FILE, DF_CC, VARS, X_PTR, STKBOT, STKEND),
+  - **a szalagon lévő E_LINE = 0x7E00** → a LOAD a 0x7DFF-nél áll meg,
+    a PROFIL (0x7E00..0x7FFF) a képen kívüli, LOAD-védettségért.
+- A LOAD "" (null-név, D=0x80) névnyilvántartás nélkül tölt; a lejátsoó a
+  blokk ELŐTT min. 0,5 s csendet adjon.
+- **További témacsomag-blokkok** (a 8. argumentumtól `[csomag.bin, név]` párok)
+  a motor saját betöltőjét hívják — a PROFIL-persistencia a motor SHIFT+S
+  kazettaíró-rendszerének feladata (4. fázis).
+- Lejátszó-protokoll az `zx81sim.py` `stream_to_ear` (lead_in ≥ 25 000 csend,
+  bit = 4 (0) / 9 (1) impulzus × 150/150 µs, bit utáni ~1 ms csend, MSB first).
+
+Végponti bizonyíték: `tesztek/kazetta_teszt.py` valódi ROM-mal bájtpontos LOAD-ot
+bizonyít (PROFIL-szenitel érintetlen, a 0x7FE8–0x7FEB verem-maradék 4 bájt kivételével).

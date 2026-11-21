@@ -40,9 +40,11 @@ python3 eszkozok/kb_compile.py tudas/astronomy.txt kazetta/astronomy.bin
 Válaszd ki, melyik csomag kerüljön a kazettára (felülírja az előzőt):
 
 ```
-python3 eszkozok/t81_build.py kazetta/motor.bin kazetta/szotar.bin kazetta/science.bin \
-        kazetta/PIOCO.T81 kazetta/astronomy.bin ASTRONOMY
-python3 tesztek/ellenorzes.py kazetta/motor.bin kazetta/szotar.bin kazetta/PIOCO.T81
+python3 eszkozok/t81_build.py kazetta/motor.bin kazetta/szotar_full.bin \
+        kazetta/science.bin kazetta/PIOCO.T81 kazetta/tadat.bin \
+        kazetta/tartalek.bin kazetta/boot_sablon.bin kazetta/astronomy.bin ASTRONOMY
+python3 tesztek/ellenorzes.py kazetta/motor.bin kazetta/szotar_full.bin \
+        kazetta/PIOCO.T81
 ```
 
 Ha az ellenőrzés "MINDEN ELLENŐRZÉS RENDBEN"-et ír, a csomag beépítve van.

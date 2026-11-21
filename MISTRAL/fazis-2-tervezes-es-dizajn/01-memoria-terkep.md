@@ -63,3 +63,36 @@
   FRAMES-felülírás; FAST/SLOW viselkedés).
 - A CSOMAGTERÜLET-en belüli szekcióhatárok finomhangolása, ha egy témacsomag
   4 KB-nál nagyobb szekciókat igényelne — ilyenkor **két részlettel töltünk**.
+
+---
+
+## Frissítés (v2.5 — single-image kazetta, implementált állapot)
+
+A fenti tábla a 2. fázis terve volt. A valódi ROM LOAD rutinja miatt a motor
+a v2.5-ben átköltözött; az **implementált, tesztelt** térkép:
+
+| Címtartomány | Zóna | Jegyzet |
+| --- | --- | --- |
+| `0x4000–0x4033` | SYSVARS | rendszerváltozók |
+| `0x4034` | FRAMES | 2 B, a ROM **csökkenve** számolja (DISPLAY-1); eltelt = BOOTFR − FRAMES |
+| `0x4009..0x4008+698` | boot-sablon | a `sablon_keszit.py` által kimért telepedett állapot |
+| `0x406D` | programterület | `10 RAND USR 18176` launcher-sor (0x406D–0x4080) |
+| `0x4083` | D_FILE | szintetikus, teljes 24 soros képernyő (793 B, lezáró 0x76-tal: `0x4083..0x439B`) |
+| `0x439C` | VARS | üres változó-terület: a 0x80-bájt **a VARS címén** (ROM-hű, boot-mért) |
+| `0x439D` | E_LINE (RAM) | edit-stub `7F 76 00`; STKBOT = STKEND = `0x439F` (E_LINE + 2) |
+| `0x4700–0x56FF` | MOTOR (4096 B) | motor.bin (4003 B); `USR 18176` belépés |
+| `0x5700–0x5EFF` | SZÓTÁR (2048 B) | szótár + bigramm + trigram (`szotar_full.bin`) |
+| `0x6000–0x66FF` | CHAT | beszélgetés-napló, inverz fejlécek, görgetés |
+| `0x6700` | EMSTORE | emlékezet-rekordok (0xC3 mágnes + 4 B rekordok, max 63) |
+| `0x6800–0x6AFF` | MUNKAT (768 B) | paraméterblokk (PB): DFPTR=PB+0x110, DFROW/DFCOL, STB. |
+| `0x6B00–0x6BFF` | TADAT (256 B) | naptár/óra/képzelet/fakt statikus táblák |
+| `0x6C00–0x77FF` | ALAPMAG (3072 B) | rezidens alaptudás |
+| `0x7800–0x7CFF` | CSOMAG (1280 B) | betöltött témacsomag |
+| `0x7D00–0x7DFF` | TARTALEK (256 B) | rendezett szövegvédő blokkok (ASKH/ASKS/TXTDUNNO/TXTABORT) |
+| `0x7E00–0x7EFF` | **PROFIL (védett)** | tartós felhasználói adatok; **a szalagon lévő E_LINE = 0x7E00 → a LOAD ténylegesen sosem ír ide** |
+| `0x7F00–0x7FFF` | VEREM | VEREMTOP = 0x7FFF |
+
+Kulcsváltozások a tervhez képest: PROFIL a 0x4100-ról **0x7E00-ra** költözött
+(LOAD-védettségért), a motor 0x4600-ról **0x4700-ra**, a D_FILE dinamikus
+(DFPTR a PB-ben), a képernyő teljes 24 soros (a CLRSCR 793 B-ja belefér a
+D_FILE–VARS résbe).

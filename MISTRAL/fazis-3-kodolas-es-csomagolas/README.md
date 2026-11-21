@@ -1,7 +1,10 @@
 # 3. fázis — Kódolás és csomagolás (MISTRAL munkaterület)
 
-**Állapot:** első működő kivágás; v2: vezérlők + bigramm-generátor ✅ — a teljes eszközlánc futtatható,
-a `PIOCO.T81` legyártott és automatikusan ellenőrzött.
+**Állapot:** v2.5 — **single-image kazetta** (valódi ROM SAVE-kép, ROM LOAD ""-val betölthető),
+minden teszt zöld (`szalag_teszt`, `kazetta_teszt`, `ellenorzes`).
+A v2.5 elrendezés a C/6 hiba okát szüntette meg (l. `t81_build.py` fejléc):
+a ZX81 ROM LOAD rutinja csak egyetlen összefüggő képet tud betölteni
+(0x4009-től a szalagon lévő E_LINE-ig, nálunk 0x7E00-ig).
 
 ---
 
@@ -9,14 +12,18 @@ a `PIOCO.T81` legyártott és automatikusan ellenőrzött.
 
 | Elem | Fájl | Állapot |
 | --- | --- | --- |
-| Z80 motor (forrás) | `motor/pico.asm` | összeáll, **1 819 bájt** (v2) (zóna-határ: 4 096 B) |
-| saját Z80-összeállító | `eszkozok/z80asm.py` | kétmenetes; a motor készletén fut |
+| Z80 motor (forrás) | `motor/pico.asm` | összeáll, **4 003 bájt** (v2.5) (zóna: 0x4700–0x56FF = 4 096 B) |
+| saját Z80-összeállító | `eszkozok/z80asm.py` | kétmenetes; a motor készletén fut (SBC/ADC HL,rr; RET cc javítva) |
 | tokenizáló-tanító | `eszkozok/tokenizer_train.py` | szövegből szótár-blob (111 token / 740 B + bigramm 550 B) |
 | tudáscsomag-fordító | `eszkozok/kb_compile.py` | kulcsszó+tény sorok → bináris lánc |
-| `.T81` építő | `eszkozok/t81_build.py` | PI-mágnesjelű blokkok + PROFIL/0x76-védelem |
-| füstvizsgálat | `tesztek/ellenorzes.py` | 8 ellenőrzés: méret, mágnesjel, XOR, PROFIL, RAM-határ, 0x76-tiltás, szótárforma, bigrammforma |
-| tudásforrások | `tudas/*.txt` | alapkcorpusz + 15 témacsomag-forrás (angol prototípus) |
-| kész kazetta | `kazetta/PIOCO.T81` | **4 144 B, 5 blokk** (BOOT, MOTOR, SZÓTÁR, ALAPMAG, témacsomag) |
+| `.T81` építő | `eszkozok/t81_build.py` | **EO81-konténer, single image** (0x4009..0x7E00), launcher-sor + PROFIL/0x76-védelem |
+| boot-sablon gyártó | `eszkozok/sablon_keszit.py` | a valódi ROM bootjából kimért telepedett állapot (698 B, determinisztikus) |
+| végponti teszt | `tesztek/kazetta_teszt.py` | konténer + **valódi ROM LOAD ""** (bájtpontos) + rendszerváltozók + motor-boot (splash) |
+| szalag-protokoll teszt | `tesztek/szalag_teszt.py` | EAR-atmenetsoros LOAD valódi ROM-mal |
+| füstvizsgálat | `tesztek/ellenorzes.py` | EO81-konténer, E_LINE=0x7E00, launcher-sor, rendszerváltozók, D_FILE/0x76-védelem, zónák bájtpontossága, szótár/bigramm/trigram/eml/tadat formák |
+| derail-nyomkövető | `tesztek/trace_motor.py` | motor single-step diagnosztika (az első ROM-PC-ig) |
+| tudásforrások | `tudas/*.txt` | alapcorpusz + 15 témacsomag-forrás (angol prototípus) |
+| kész kazetta | `kazetta/PIOCO.T81` | **15 921 B, EO81 single image** (kép: 15 863 B = 0x4009..0x7E00) |
 
 ## Hogy épül? (teljes, 4. fázis szerinti)
 
@@ -32,13 +39,41 @@ done
 cat kazetta/szotar.bin kazetta/bg.bin kazetta/tri.bin > kazetta/szotar_full.bin
 python3 eszkozok/eml_make.py kazetta/eml.bin 0:1:12:5 1:1:2:6
 python3 eszkozok/z80asm.py motor/tadat.asm kazetta/tadat.bin
+python3 eszkozok/sablon_keszit.py /tmp/zx81.rom
 python3 eszkozok/t81_build.py kazetta/motor.bin kazetta/szotar_full.bin \
-        kazetta/science.bin kazetta/PIOCO.T81 kazetta/science.bin SCIENCE \
-        kazetta/eml.bin kazetta/tadat.bin kazetta/tartalek.bin
+        kazetta/science.bin kazetta/PIOCO.T81 kazetta/tadat.bin \
+        kazetta/tartalek.bin kazetta/boot_sablon.bin
 python3 tesztek/ellenorzes.py kazetta/motor.bin kazetta/szotar_full.bin \
         kazetta/PIOCO.T81 kazetta/bg.bin kazetta/eml.bin kazetta/tadat.bin \
         kazetta/tri.bin kazetta/tartalek.bin
+python3 tesztek/szalag_teszt.py /tmp/zx81.rom
+python3 tesztek/kazetta_teszt.py /tmp/zx81.rom
 ```
+
+A szimulátortesztekhez a valódi ZX81 ROM szükséges (szerzői jogvédett, nem
+kerül a repóba): `/tmp/zx81.rom` (8 192 B).
+
+## A C/6 hiba okai és a v2.5 javítás (röviden)
+
+1. **Formátum:** a régi szétszórt, célcímzett blokkos `.T81` a ROM LOAD-erőltetés
+   miatt **elvileg sem** volt betölthető (NEXT-PROG 0x0347 egyetlen összefüggő
+   képet vesz, 0x4009-től a szalagon lévő E_LINE-ig). → single image.
+2. **Assembler-hiba:** a saját `z80asm.py` a `RET cc` opkódokat félbemaradt
+   JP-bájttal helyettesítette (pl. `RET Z` → lone `d2`), ami a motorban
+   repedéssé nőtt (EMINIT: `JP NC,0x2521`-lel került a motor ROM-ba).
+   Javítás: külön `COND_RET` tábla (0xC0/0xC8/0xD0/0xD8).
+3. **Motorhiba:** az `ASC2ZX` a betű kódját A-ban adja, de PUTA-ban a
+   `CALL CALCUR` felülírta A-t (utolsó művelete `LD A,(DFCOL)`), ezért a
+   képernyőre a kurzor-oszlop került a szöveg helyett. Javítás: CALCUR
+   megőrzi A-t (`PUSH AF`/`POP AF`).
+4. **Képernyő-biztonság:** a builder a VARS 0x80-bájtja a képernyő-lezáró
+   0x76-ot írta felül; a SLOW-módos képernyőfrissítés valódi gépen itt
+   furcsult meg. Javítás: ROM-hű elrendezés — a D_FILE-lezáró 0x76 ép,
+   a VARS a maga 0x80-bájtjára mutat (0x439C), az edit-stub (7F 76 00)
+   utána, STKBOT=STKEND a stub után (boot-mért).
+5. **PROFIL-védelem:** a szalagon lévő E_LINE = **0x7E00** → a LOAD ténylegesen
+   sosem ír a 0x7E00..0x7FFF (PROFIL) zónára; a tartós mentést a motor
+   SHIFT+S kazettaíró-rendszere kezeli.
 
 ## Mit tud már a motor (v2)?
 
@@ -57,7 +92,7 @@ python3 tesztek/ellenorzes.py kazetta/motor.bin kazetta/szotar_full.bin \
 ## Nyitott pontok (a 4. fazis emulatortesztje veglegesiti)
 
 A 4. fazis egy reszet mar elkeszult: teljes 8 soros KEYTBL + ENTER,
-SHIFT-vezerlok es bigramm-generator (olasd:
+SHIFT-vezerlok es bigramm-generator (olvasd:
 `../fazis-4-tudas-trening-teszt/05-vezervek-es-nagygenerator.md`).
 
 - ASCII -> ZX81 karakterkod-tabla (ASCTAB) vegso ertekei

@@ -33,22 +33,34 @@
 ; FACTTAB kiegészítés (SLEEP/TIRED/HUNGRY/ANGRY); statikus táblák a
 ; motorzónán kívül, TADAT blokkban (0x6B00, motor/tadat.asm).
 ; Motor: 4052 B (tartalék 44 B), TADAT: 125 B.
+;
+; v2.5 ÚJ (C/6 javítás): a kazetta a VALÓDI ZX81 ROM SAVE-képet használja
+; (single image, 0x4009..E_LINE), a motort a '10 RAND USR 18176' launcher
+; sor indítja. Ennek következményei:
+;  - FRAMES javítva: a ROM a DISPLAY-1 (0x0229) közben a 0x4034 számítót
+;    minden képkockán CSÖKKENTI (a 0x4025 a LAST_K volt!); eltelt idő =
+;    BOOTFR - FRAMES (SNAPFR pillanatkép alapján).
+;  - a motor a ROM D_FILE rendszerváltozójából (0x400C) veszi a képernyő
+;    báziscímét (DFPTR), az írás a ROM képernyőzónájába megy; így a
+;    kép a LOAD "" utáni ROM-állapotba illeszkedik.
+;  - PROFIL 0x7E00 (az image-en kívül esik: E_LINE = 0x7F00).
 ; ============================================================
 
 ; ---- Zónák (fázis-2 memóriatérkép) ----
 SYSVARS     EQU 0x4000
-FRAMES      EQU 0x4025        ; 50 Hz óraszámáló
-PROFIL      EQU 0x4100        ; PROFIL védett blokk (256 B)
-DFILE       EQU 0x4200
-MOTORBASE   EQU 0x4600
-SZOTAR      EQU 0x5600
+FRAMES      EQU 0x4034        ; 50 Hz óraszámító 2 B; a ROM DISPLAY-1 (0x0229)
+                              ; minden képkockán CSÖKKENTI -> eltelt = BOOTFR - FRAMES
+DFSYSV      EQU 0x400C        ; D_FILE rendszerváltozó (képernyő-báziscím)
+PROFIL      EQU 0x7E00        ; PROFIL védett blokk (256 B; az image-en KÍVÜL)
+MOTORBASE   EQU 0x4700        ; motor-zóna 0x4700..0x56FF = USR 18176 belépés
+SZOTAR      EQU 0x5700        ; szótár-zóna 0x5700..0x5EFF-ba is húzhatja a motor
 KB_BASE     EQU 0x6C00        ; ALAPMAG: betöltött tudáslánc (kb_compile)
 CHAT        EQU 0x6000
 CHATM       EQU 0x6000           ; napló-mágnes (0xA5)
 CHATM0      EQU 0x6001           ; itt indul az első rekord
 ; rekord: [fejléc][0][szöveg][0]
 MUNKAT      EQU 0x6800
-TARTALEK    EQU 0x7E00
+TARTALEK    EQU 0x7D00
 VEREMTOP    EQU 0x7FFF
 TADAT       EQU 0x6B00        ; fix adattabla-blokk: PB-buferek es ALAPMAG kozott
 TAB13       EQU TADAT         ; honap-index tabla (tadat.asm, T81 blokk tolto)
@@ -120,6 +132,8 @@ HNDEX       EQU PB+0xEC       ; history-browser: mutatott üzenet sorszáma
 CDIR        EQU PB+0xED       ; üzenet iránya: 0 = YOU, 1 = PIOCO
 CMSG        EQU PB+0xEE       ; 2 bájt: tárolandó üzenet címe
 TMPHDR      EQU PB+0xF0     ; 20 bájt: összerakott fejléc (0-zárt)
+DFPTR       EQU PB+0x110    ; 2 bájt: ROM D_FILE báziscím (START-ból olvassa)
+BOOTFR      EQU PB+0x112    ; 2 bájt: FRAMES-pillanat a teljes bekapcsoláskor
 IMAGF       EQU PB+0xA5     ; képzelet-modul: jelző (REASON állítja)
 IMAGSEEDT   EQU PB+0xA6     ; indító-token (BGWRITE induláskor elfogyasztja)
 TRP2        EQU PB+0xA7     ; trigramm-kulcs elso fele (ketto valtast ezelott)
@@ -130,16 +144,20 @@ FACTTAB     EQU TADAT+0x7D    ; fakt-kulcsszavak (tadat.asm)
 NEGTAB      EQU TADAT+0xCC    ; tagnado szok (tadat.asm)
 CLRTAB      EQU TADAT+0xD4    ; megszunes-jelzo szok (tadat.asm)
 TXTNOTED    EQU TADAT+0xED    ; "[noted]" (tadat.asm)
-ASKH        EQU 0x7E00        ; emlek-rakerdezes (tartalek.asm)
-ASKS        EQU 0x7E1E
-TXTDUNNO    EQU 0x7E39
-TXTABORT    EQU 0x7E54
+ASKH        EQU 0x7D00        ; emlék-rákérdezés (tartalek.asm)
+ASKS        EQU 0x7D1E
+TXTDUNNO    EQU 0x7D39
+TXTABORT    EQU 0x7D54
 
         ORG MOTORBASE
 
 ; ================= INDULÁS =================
 START:
         LD SP,VEREMTOP
+        LD HL,(DFSYSV)          ; ROM D_FILE báziscím -> a képernyő-írások ide
+        LD (DFPTR),HL
+        LD HL,(FRAMES)
+        LD (BOOTFR),HL          ; FRAMES lefelé számol, eltelt = BOOTFR - FRAMES
         XOR A
         LD (THINKFLG),A
         LD (RNDSEED),A
@@ -224,7 +242,7 @@ NOSHOW:
 ; ================= KÉPERNYŐ =================
 ; CLRSCR: 24 sor × (32 szóköz + 0x76-terminátor), majd D_FILE-lezáró 0x76
 CLRSCR:
-        LD HL,DFILE
+        LD HL,(DFPTR)
         LD B,24
 CLRS_R:
         PUSH BC
@@ -247,8 +265,10 @@ CLRS_C:
         LD (DFCOL),A
         RET
 
-; CALCUR: HL = DFILE + 33×sor + oszlop (a kurzor tiszta címe)
+; CALCUR: HL = DFILE + 33×sor + oszlop (a kurzor tiszta címe);
+; A megmarad (a hívó PUTA a karakter-kódot A-ban tartja)
 CALCUR:
+        PUSH AF
         PUSH DE
         LD A,(DFROW)
         LD L,A
@@ -261,13 +281,14 @@ CALCUR:
         ADD HL,HL
         ADD HL,HL               ; 32×sor
         ADD HL,DE               ; 33×sor
-        LD DE,DFILE
+        LD DE,(DFPTR)
         ADD HL,DE
         LD A,(DFCOL)
         LD E,A
         LD D,0
         ADD HL,DE
         POP DE
+        POP AF
         RET
 
 ; PUTA: A = már konvertált ZX81-kód kiírása; a 32. oszlopot nem lépi
@@ -294,8 +315,11 @@ PUTA_N:
 ; SCRUP: a 23 sor tartalmát eggyel felfelé, az utolsó sor üres lesz
 SCRUP:
         PUSH BC
-        LD HL,DFILE+33
-        LD DE,DFILE
+        LD HL,(DFPTR)
+        LD D,H
+        LD E,L                  ; DE = D_FILE bázis
+        LD BC,33
+        ADD HL,BC               ; HL = D_FILE + 33
         LD BC,759
 SCR_L:
         LD A,(HL)
@@ -849,7 +873,7 @@ GENERATE:
         CP 7
         JR Z,GEN_TIME
         CP 2
-        JR Z,GEN_KB
+        JP Z,GEN_KB             ; membran: JR mar nem fut be (GEN_KB > 127)
         LD A,(IMAGF)
         OR A
         JR Z,GEN_PL
@@ -875,11 +899,15 @@ GEN_DAY:
         RET
 
 ; GEN_TIME: munkamenet-ora (bekapcsolastol eltelt szamolt masodperc);
-; dokumentalt egyszerusites: FRAMES-bol szamolva, nem valodi ora
+; dokumentalt egyszerusites: FRAMES-bol szamolva (a ROM lefelé szamol):
 GEN_TIME:
         LD HL,TXTTIS
         CALL PRTLN
+        LD HL,(BOOTFR)
+        EX DE,HL
         LD HL,(FRAMES)
+        OR A
+        SBC HL,DE               ; HL = eltelt keretek (FRAMES lefelé számol)
         PUSH BC
         LD BC,50
         CALL DIV16             ; DE = masodpercek, HL = maradek
@@ -2308,7 +2336,11 @@ MKH_Y:  LD HL,TXTYOU
         CALL APPSZ
 MKH_T:  LD A,' '
         CALL APPCH
+        LD HL,(BOOTFR)
+        EX DE,HL
         LD HL,(FRAMES)
+        OR A
+        SBC HL,DE
         PUSH BC
         LD BC,50
         CALL DIV16             ; DE = másodpercek, HL = maradék
@@ -2475,16 +2507,12 @@ SNAPFR:
         LD (FRSNAP),HL
         RET
 ELAPSEC:
-        LD HL,(FRAMES)
+        LD HL,(FRSNAP)
         PUSH BC
-        LD DE,(FRSNAP)
-        LD A,L
-        SUB E
-        LD L,A
-        LD A,H
-        SBC A,D             ; HL = FRAMES - FRSNAP (atelépéskor nagy; fent korlátozva)
-        LD H,A
-        LD BC,50
+        EX DE,HL
+        LD HL,(FRAMES)
+        OR A
+        SBC HL,DE           ; HL = FRSNAP - FRAMES = eltelt keretek
         CALL DIV16
         LD A,E
         CP 100

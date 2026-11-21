@@ -2,7 +2,9 @@
 
 **Állapot:** futóvá tett vezérlés, generátor, emlékezet,
 chat-napló/görgetés **és naptár + képzelet-modul (v2.3)**. A `PIOCO.T81`
-**6755 B, 7 blokk**, minden automatikus vizsgálat zöld.
+**v2.5: 15 921 B, EO81 single image** (valódi ROM LOAD "" betöltés, bájtpontos),
+minden automatikus vizsgálat + a szimulátoros végponti tesztek (`szalag_teszt`,
+`kazetta_teszt`) zöldek.
 
 ## Mappa
 
@@ -72,21 +74,22 @@ chat-napló/görgetés **és naptár + képzelet-modul (v2.3)**. A `PIOCO.T81`
 
 ```
 python3 eszkozok/z80asm.py motor/pico.asm kazetta/motor.bin
+python3 eszkozok/z80asm.py motor/tartalek.asm kazetta/tartalek.bin
 python3 eszkozok/tokenizer_train.py tudas/alapcorpus.txt kazetta/szotar.bin
 python3 eszkozok/bigram_train.py tudas/alapcorpus.txt kazetta/szotar.bin kazetta/bg.bin
-for p in science health retro astronomy cooking entertainment future learning \
-         hobby literature movies celebrities art work ufo; do
+python3 eszkozok/trigram_train.py tudas/alapcorpus.txt kazetta/szotar.bin kazetta/tri.bin
+for p in science health retro astronomy cooking entertainment future learning hobby literature movies celebrities art work ufo; do
   python3 eszkozok/kb_compile.py tudas/$p.txt kazetta/$p.bin
 done
-cat kazetta/szotar.bin kazetta/bg.bin > kazetta/szotar_full.bin
+cat kazetta/szotar.bin kazetta/bg.bin kazetta/tri.bin > kazetta/szotar_full.bin
 python3 eszkozok/eml_make.py kazetta/eml.bin 0:1:12:5 1:1:2:6
 python3 eszkozok/z80asm.py motor/tadat.asm kazetta/tadat.bin
+python3 eszkozok/sablon_keszit.py /tmp/zx81.rom
 python3 eszkozok/t81_build.py kazetta/motor.bin kazetta/szotar_full.bin \
-        kazetta/science.bin kazetta/PIOCO.T81 kazetta/science.bin SCIENCE \
-        kazetta/eml.bin kazetta/tadat.bin
+        kazetta/science.bin kazetta/PIOCO.T81 kazetta/tadat.bin \
+        kazetta/tartalek.bin kazetta/boot_sablon.bin
 python3 tesztek/ellenorzes.py kazetta/motor.bin kazetta/szotar_full.bin \
-        kazetta/PIOCO.T81 kazetta/bg.bin kazetta/eml.bin kazetta/tadat.bin
-```
-
-A kazettán a B4-ALAPMAG a tudás (most science), a B5-CSOMAG a cserélhető
-téma (most szintén science, igazából: bármelyik másik .bin-re cserélhető).
+        kazetta/PIOCO.T81 kazetta/bg.bin kazetta/eml.bin kazetta/tadat.bin \
+        kazetta/tri.bin kazetta/tartalek.bin
+python3 tesztek/szalag_teszt.py /tmp/zx81.rom
+python3 tesztek/kazetta_teszt.py /tmp/zx81.rom

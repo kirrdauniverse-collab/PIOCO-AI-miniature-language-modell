@@ -17,7 +17,9 @@ Szalag-protokoll (a ROM saját OUT-BYTE karakterisztikája alapján):
     gyakorlatilag 22 ms), a csend alatt EAR = alacsony
 
 Olvasási részletek (Wearmouth listázás):
-  - IN ($FE): 0-4. bitek = billentyűoszlopok (lenyomva = 0),
+  - IN ($FE): 0-4. bitek = billentyűoszlopok (lenyomva = 0); a magas
+    bájt választja ki a row-sorszámot (0xFE..0x7F; a 0x00FE-port a
+    szalag-olvasás, billentyű nincs rajta),
     5-6 = felhúzott (1), 7. bit = EAR szalagjel
   - BREAK-3 a $7FFE porttal a SPACE sort olvassa (0. oszlop)
 
@@ -64,6 +66,11 @@ class ZX81Sim:
         self._last_frame = 0
         self.ticks = 0
         self.io_in = 0            # IN ($FE) hívások száma
+        # NMI-generátor (SCL chip utánzata): OUT ($FE) fel, OUT ($FD) le
+        self.nmi_on = False
+        self.nmi_force = False    # teszt-vezerles: ROM-ok NMI-zavara opt-in
+        self._last_nmi_tick = 0
+        self.int_log = []
 
         self.m.set_input_callback(self._input)
         self.m.set_output_callback(self._output)
@@ -75,7 +82,10 @@ class ZX81Sim:
             self.io_in += 1
             row = (port >> 8) & 0xFF
             val = 0x1F
-            if self.pressed and (row & 0x1E == 0):
+            # valodi billentyu-sor: pontosan egy kivalasztobit alacsonyan
+            # (0xFE..0x7F), a szalag-port (0x00FE) against nem nyul a
+            # billentyukhez
+            if self.pressed and (row & 0x7E) != 0:
                 for r, cb in self.pressed:
                     if r == row:
                         val &= ~cb & 0xFF
@@ -85,9 +95,43 @@ class ZX81Sim:
         return 0xFF
 
     def _output(self, port, value):
-        # OUT ($FD)/($FE): NMI-generátor, OUT ($FF): képernyőport —
-        # a betöltés-teszthez nem játszik szerepet
-        pass
+        # A ZX81 SCL-chip konvenciója (a ROM 0x214/0x218 nyomán):
+        # OUT ($FD) = NMI-generátor BE, OUT ($FE) = NMI-generátor KI.
+        # (OUT ($FF): képernyőport, itt nem számít.)
+        low = port & 0xFF
+        if self.nmi_force:
+            if low == 0xFD:
+                self.nmi_on = True
+            elif low == 0xFE:
+                self.nmi_on = False
+
+    def _push_pc(self):
+        sp = (self.m.sp - 2) & 0xFFFF
+        self.m.sp = sp
+        self.m.memory[sp] = self.m.pc & 0xFF
+        self.m.memory[sp + 1] = (self.m.pc >> 8) & 0xFF
+
+    def _maybe_ints(self):
+        """Utasításközi megszakítás-injektálás.
+
+        - NMI (vektor 0x0066): ha a generátor be van kapcsolva és eltelt
+          egy periódus. A generátor bekapcsolta idején MASZKOLHATÓ INT
+          NEM adható (a NMI-CONT képernyőrajzoló HALT szinkronját csak
+          NMI ébresztheti, más esetben a kaszkád vereme összekuszálódik).
+        - maszkolható INT (vektor 0x0038): csak generátor-KI állapotban,
+          ha a CPU HALT-ban van és az IFF1 engedélyezett (a valós gépen
+          az R-regiszter bit6 billenése váltja ki a HALT alatt).
+        """
+        if self.nmi_on and self.nmi_force:
+            if self.ticks - self._last_nmi_tick >= 208:
+                self._last_nmi_tick = self.ticks
+                self._push_pc()
+                self.m.pc = 0x0066
+                self.m.halted = False
+                self.int_log.append(("NMI", self.ticks))
+        if self.m.halted and self.m.iff1 and not self.nmi_on:
+            self.m.on_handle_active_int()
+            self.int_log.append(("INT", self.ticks))
 
     # ---- EAR szalag ----
 
@@ -125,8 +169,7 @@ class ZX81Sim:
             self.m.run()
             self._advance()
             self.ear_level = self.ear_at(self.ticks)
-            if self.m.halted and self.m.iff1:
-                self.m.on_handle_active_int()
+            self._maybe_ints()
             if stop_pc is not None and self.m.pc == stop_pc:
                 return True
         return False
@@ -136,14 +179,15 @@ class ZX81Sim:
 
         A SLOW módban várakozó gépet INT-tel ébresztgeti (FRAMES számol)."""
         self.m.pc = 0x0000
+        self.nmi_on = False
+        self._last_nmi_tick = self.ticks
         stop = self.ticks + ticks
         while self.ticks < stop:
             self.m.ticks_to_stop = 200
             self.m.run()
             self._advance()
             self.ear_level = self.ear_at(self.ticks)
-            if self.m.halted and self.m.iff1:
-                self.m.on_handle_active_int()
+            self._maybe_ints()
         return self.m.pc
 
     # ---- segédek ----

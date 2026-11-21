@@ -1,9 +1,10 @@
 # Elkészült csomagok állapottáblája (4. fázis, angol prototípus)
 
-Motor: **1 819 bájt (v2)** · szótár: **111 token / 740 B** · bigramm:
-**550 B, 212 átmenet** · kazetta: **4 144 B / 5 blokk**
-Mindet a futó eszközlánc építette és a füstvizsgálat zölden hozta
-(most már a bigramm-forma ellenőrzéssel együtt).
+Motor: **4 003 bájt (v2.5)** · szótár: **140 token** · bigramm:
+**791 B, 229 átmenet** · trigram: **113 B, 16 kulcs** · kazetta:
+**15 921 B, EO81 single image** (v2.5)
+Mindet a futó eszközlánc építette; az ellenőrzés és a valódi ROM-szimulátoros
+végponti teszt (`kazetta_teszt.py`) zölden hozta.
 
 | # | Csomag | Forrás | Méret | Állapot |
 | ---: | --- | --- | ---: | --- |
@@ -24,11 +25,12 @@ Mindet a futó eszközlánc építette és a füstvizsgálat zölden hozta
 | 14 | WORK | `tudas/work.txt` | 273 B | ✅ lefordítva |
 | 15 | UFO | `tudas/ufo.txt` | 313 B | ✅ lefordítva |
 
-A cseréhez a B5-CSOMAG blokkot más bin-re érdemes építeni, például:
+A cseréhez a CSOMAG-zónába (0x7800) más bin-t érdemes építeni, például:
 
 ```
 python3 eszkozok/t81_build.py kazetta/motor.bin kazetta/szotar_full.bin \
-        kazetta/science.bin kazetta/PIOCO.T81 kazetta/health.bin HEALTH
+        kazetta/science.bin kazetta/PIOCO.T81 kazetta/tadat.bin \
+        kazetta/tartalek.bin kazetta/boot_sablon.bin kazetta/health.bin HEALTH
 ```
 
 *(A magyar nyelvű csomagok a kiforrott modell után jönnek — lásd
