@@ -31,3 +31,17 @@
   - **pörgő karakterek** effekt biztonságos tartományra szűrve,
   - memóriatérkép-zónák leírása frissült (a bájtösszegek és a 16 384 B-es folytonos lefedés **változatlan**, újraszámolva),
   - fázisterv (2. fázis bővült: rajzvászon/BASIC-puffer/elhelyezés, emlékeztető-modul) és a kockázati lista **6. ponttal** bővült.
+
+## 2026-11-21 · 2. fázis — Tervezés és dizájn ✅
+
+- `docs/fazis-2-terveles.md` lezárja az 1. fázis nyitott döntéseit:
+  - memóriatérkép végleges (PROFIL nem mozdul),
+  - PERSIST_BLOCK, MUNKATERÜLET (vászon 352 B + BASIC 256 B + token/reasoning) bontása,
+  - FLAGS / STATE bitmezők, XOR 0xA5, 7 napos elavulás,
+  - képernyő-kódtábla: csak 0x00–0x3F és 0x80–0xBF, plusz sorvég 0x76,
+  - BOOT, csevegő, rajz, BASIC képernyő,
+  - `.T81` sávok és a szalagvégre fűzött `SAVEnnnn` mentés,
+  - 4 emlékeztető, SLOW kötelező,
+  - 12 Agent-parancs,
+  - a 3. fázis első szelete: BOOT, utána üres csevegő.
+
