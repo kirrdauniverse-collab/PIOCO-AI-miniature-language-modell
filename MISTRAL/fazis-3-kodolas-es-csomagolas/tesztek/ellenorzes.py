@@ -14,7 +14,7 @@ import sys
 MOTOR_ZONA_MAX = 0x55FF - 0x4600 + 1
 PROFIL_ZONA = (0x4100, 0x41FF)
 TIPUSOK = {1: "BOOT", 2: "MOTOR", 3: "SZOTAR", 4: "ALAPMAG", 5: "CSOMAG", 6: "EMLEKEZET",
-           7: "TADAT"}
+           7: "TADAT", 8: "TARTALEK"}
 
 hibak = []
 
@@ -28,12 +28,17 @@ def vizsgal_motor(bin_path):
     return data
 
 
+SZOTAR_ZONA_MAX = 2560
+
+
 def vizsgal_szotar(path):
     with open(path, "rb") as f:
         data = f.read()
     n = data[0]
     if n > 254:
         hibak.append(f"túl sok token: {n}")
+    if len(data) > SZOTAR_ZONA_MAX:
+        hibak.append(f"szotar-zona tul nagy: {len(data)} B (max {SZOTAR_ZONA_MAX})")
     i = 1
     tok = 0
     while i < len(data) and data[i] != 0:
@@ -129,6 +134,68 @@ def vizsgal_bigramm(path, szotar_path):
                 pos += 2
                 par = 0
     print(f"[BIGRAMM] tábla: {len(bg)} bájt, {elemek} > 4 bites súlyú átmenet")
+    extra = bg[1 + 2*ntok] | bg[2 + 2*ntok] << 8
+    if extra != len(bg):
+        hibak.append(f"bigramm extra eltolás nem a tabla hossza: {extra} != {len(bg)} (regi bg.bin a trigram-hoz?)")
+    return ntok
+
+
+def vizsgal_tri(path, szotar_path):
+    """tri.bin invariánsok: kulcsok [t1][t2][n][parok][0], nibble-súlyok."""
+    tri = open(path, "rb").read()
+    ntok = open(szotar_path, "rb").read()[0]
+    pb = 0
+    kulcs = 0
+    adat = 0
+    while pb < len(tri):
+        t1 = tri[pb]
+        if t1 == 0:
+            break
+        if pb + 2 > len(tri):
+            hibak.append(f"tri kulcs levágva @ {pb}")
+            break
+        n = tri[pb + 2]
+        if not (1 <= n <= 15):
+            hibak.append(f"tri koveto-szam {n} ertelmetlen ({t1},{tri[pb+1]} @ {pb})")
+            break
+        if not (1 <= tri[pb + 1] <= ntok):
+            hibak.append(f"tri t2 token erteven kivuli: {tri[pb+1]} @ {pb}")
+            break
+        pb += 3
+        i = 0
+        while i < n:
+            ta = tri[pb]
+            if ta == 0 or ta > ntok:
+                hibak.append(f"tri koveto token erteven kivuli ({ta} @ {pb})")
+                i = n
+                break
+            wa = tri[pb + 2] >> 4
+            if not (1 <= wa <= 15):
+                hibak.append(f"tri súly erteven kivuli ({wa} @ {pb})")
+                i = n
+                break
+            adat += 1
+            if tri[pb + 1] != 0:
+                if tri[pb + 1] > ntok:
+                    hibak.append(f"tri tB token erteven kivuli @ {pb}")
+                    i = n
+                    break
+                wb = tri[pb + 2] & 0x0F
+                if not (1 <= wb <= 15):
+                    hibak.append(f"tri B súly erteven kivuli @ {pb}")
+                    i = n
+                    break
+                adat += 1
+                i += 2
+            else:
+                i += 1
+            pb += 3
+        if pb >= len(tri) or tri[pb] != 0:
+            hibak.append(f"tri kulcs-veggel hianyzik @ {pb}")
+            break
+        pb += 1
+        kulcs += 1
+    print(f"[TRI] tabla: {len(tri)} bájt, {kulcs} kulcs, {adat} kovetoadat")
 
 
 def vizsgal_eml(path):
@@ -173,6 +240,11 @@ def vizsgal_tadat(path):
         0x46: (b"TIME\x00\x00", "TIMTAB"),
         0x4C: (b"IF\x00WOULD\x00COULD\x00WISH\x00\x00", "IMAGTAB"),
         0x61: (b"DREAM\x00HUMAN\x00MAYBE\x00SOMETHING\x00", "IMAGSEED"),
+        0x7D: (b"HEAD\x00\x00HURT\x00\x00ACHE\x00\x00SICK\x00\x01ILL\x00\x01FEVER\x00\x01"
+               b"HAPPY\x00\x02GLAD\x00\x02SLEEP\x00\x03TIRED\x00\x04HUNGRY\x00\x05ANGRY\x00\x06\x00", "FACTTAB"),
+        0xCC: (b"NO\x00NOT\x00\x00", "NEGTAB"),
+        0xD4: (b"GONE\x00BETTER\x00YES\x00GOOD\x00OK\x00\x00", "CLRTAB"),
+        0xED: (b"[noted]\x00", "TXTNOTED"),
     }
     for off, (vartalan, nev) in exp.items():
         if adat[off:off + len(vartalan)] != vartalan:
@@ -180,7 +252,7 @@ def vizsgal_tadat(path):
     print(f"[TADAT] adattabla-blokk: {len(adat)} bajt (cim 0x6B00)")
 
 
-# Használat: python3 ellenorzes.py <motor.bin> <szotar.bin> <PIOCO.T81> [bg.bin] [eml.bin] [tadat.bin]
+# Használat: python3 ellenorzes.py <motor.bin> <szotar.bin> <PIOCO.T81> [bg.bin] [eml.bin] [tadat.bin] [tri.bin]
 if __name__ == "__main__":
     vizsgal_motor(sys.argv[1])
     vizsgal_szotar(sys.argv[2])
@@ -194,6 +266,9 @@ if __name__ == "__main__":
     tadat = sys.argv[6] if len(sys.argv) > 6 else None
     if tadat:
         vizsgal_tadat(tadat)
+    tri = sys.argv[7] if len(sys.argv) > 7 else None
+    if tri:
+        vizsgal_tri(tri, sys.argv[2])
     if hibak:
         print("\nHIBÁK:")
         for h in hibak:

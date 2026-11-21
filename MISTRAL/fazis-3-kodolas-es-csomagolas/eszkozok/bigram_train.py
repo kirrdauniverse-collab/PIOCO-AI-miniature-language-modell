@@ -11,13 +11,20 @@ Mukodes:
      Paratlan elemszamnal az utolso elem par-padded (tB = 0).
 
 bg.bin formatuma:
-  [ntok(1)][2 bajtos eltolas tokenenkent, a bg.bin elejehez kepest]
-  [csoportok...]
-  Csoport: [t1][t2][w12][t3][t4][w34]... t = 0 -> csoport vege.
+  [ntok(1)][2 bajtos eltolas tokenenkent + 1 extra eltolás][csoportok...]
+  Csoport: [t1][t2][w12][t3][t4][w34]... paratlan elemszamnal az utolso
+  elem par-padded ([tX][0][wX<<4]); paros elemszam utan egy 0x00 vegjel
+  all, hogy a motor bejarasa ne usson at a sajn csoportokba (v2.4-tol:
+  a v2.2 ota lappango hibat javitja).
   Az eltolas 0 azt jelenti: nincs atmenet errol a tokenrol.
   A motor a szotar-vegjel UTANI elso bajttal kezdodo tablat olvassa
   (BIGR cim), ezert a szotar.bin es a bg.bin egymas utan kerul a
   SZOTAR-blokdba.
+
+  A fejléc utani extra eltolásnak (a tokenek után, index ntok+1) az
+  egesz bg.bin hossza all benne: a trigram-tabla pont ezutan következik,
+  a motor igy találja meg a TRI cimet a szotar_full-ban (0 = nincs
+  trigram-tabla).
 
 Hasznalat:
   python3 bigram_train.py tudas/alapcorpus.txt kazetta/szotar.bin kazetta/bg.bin
@@ -84,7 +91,7 @@ def main():
     ntok = n
     fejl = bytearray()
     fejl.append(ntok & 0xFF)
-    fejl.extend(b"\x00\x00" * ntok)
+    fejl.extend(b"\x00\x00" * (ntok + 1))
     adat = bytearray()
     for a in sorted(csoportok):
         idx = 1 + 2 * (a - 1)
@@ -104,6 +111,12 @@ def main():
             adat.append(tb & 0xFF)
             adat.append(((wa & 0x0F) << 4) | (wb & 0x0F))
             i += 2
+        if len(elems) % 2 == 0:
+            adat.append(0)
+    blob = bytes(fejl + adat)
+    extra = 1 + 2 * ntok
+    fejl[extra] = len(blob) & 0xFF
+    fejl[extra + 1] = (len(blob) >> 8) & 0xFF
     blob = bytes(fejl + adat)
     open(out_path, "wb").write(blob)
     darab = sum(len(v) for v in csoportok.values())

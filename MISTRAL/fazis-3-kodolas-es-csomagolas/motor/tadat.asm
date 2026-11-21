@@ -61,3 +61,39 @@ IMAGSEED:
         db "HUMAN",0
         db "MAYBE",0
         db "SOMETHING",0
+
+; FACTTAB: fakt-kulcsszavak ([kulcsszo][0][bitkod], vegjel 0) — a motorzonyan
+; kivul; a FACTSET/REMCHK EQU-n (TADAT+0x7D) erik el
+FACTTAB:
+        db "HEAD",0,0
+        db "HURT",0,0
+        db "ACHE",0,0
+        db "SICK",0,1
+        db "ILL",0,1
+        db "FEVER",0,1
+        db "HAPPY",0,2
+        db "GLAD",0,2
+        db "SLEEP",0,3
+        db "TIRED",0,4
+        db "HUNGRY",0,5
+        db "ANGRY",0,6
+        db 0
+
+; NEGTAB: tagnalo szok, ezek eseten az ertek = 0
+NEGTAB:
+        db "NO",0
+        db "NOT",0
+        db 0
+
+; CLRTAB: a rakerdezesre a megszunest jelzo szavak
+CLRTAB:
+        db "GONE",0
+        db "BETTER",0
+        db "YES",0
+        db "GOOD",0
+        db "OK",0
+        db 0
+
+; TXTNOTED: talalt fakt rogzitve-jelzes
+TXTNOTED:
+        db "[noted]",0

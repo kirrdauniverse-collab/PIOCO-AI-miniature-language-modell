@@ -4,7 +4,7 @@ Használat:
   python3 t81_build.py <motor.bin> <szotar.bin> <alapmag.bin> <out.T81> [<csomag.bin> <nev> [<eml.bin> [<tadat.bin>]]]
 
 Blokk: ['P','I'][típus][címL][címH][méretL][mérH][XOR][adat...]
-Típusok: 01=BOOT, 02=MOTOR, 03=SZÓTÁR, 04=ALAPMAG, 05=TÉMACSOMAG, 06=EMLÉKEZET, 07=TADAT
+Típusok: 01=BOOT, 02=MOTOR, 03=SZÓTÁR, 04=ALAPMAG, 05=TÉMACSOMAG, 06=EMLÉKEZET, 07=TADAT, 08=TARTALEK
 
 Védőellenőrzések építéskor (ugyanaz, amit a motor betöltéskor is csinál):
   - egyetlen blokk sem célozhatja a PROFIL zónát (0x4100-0x41FF),
@@ -15,9 +15,9 @@ import sys
 
 MAGIC = b"PI"
 TIPUSOK = {"BOOT": 1, "MOTOR": 2, "SZOTAR": 3, "ALAPMAG": 4, "CSOMAG": 5, "EMLEKEZET": 6,
-           "TADAT": 7}
+           "TADAT": 7, "TARTALEK": 8}
 CELOK = {"BOOT": 0x4600, "MOTOR": 0x4600, "SZOTAR": 0x5600, "ALAPMAG": 0x6C00,
-         "CSOMAG": 0x7800, "EMLEKEZET": 0x6700, "TADAT": 0x6B00}
+         "CSOMAG": 0x7800, "EMLEKEZET": 0x6700, "TADAT": 0x6B00, "TARTALEK": 0x7E00}
 PROFIL_ZONA = (0x4100, 0x41FF)
 RAM_MAX = 0x7FFF
 
@@ -54,7 +54,7 @@ def read(path):
         return f.read()
 
 
-def build(out_path, motor, szotar, alapmag, csomag=None, csomagnev=b"", eml=None, tadat=None):
+def build(out_path, motor, szotar, alapmag, csomag=None, csomagnev=b"", eml=None, tadat=None, tartalek=None):
     parts = []
     boot = (b"PIOCO AI BOOT\x00"
             b"BETOLTES: MOTOR+SZOTAR+ALAPMAG\x00"
@@ -65,6 +65,8 @@ def build(out_path, motor, szotar, alapmag, csomag=None, csomagnev=b"", eml=None
         if len(tadat) > 256:
             raise SystemExit("TADAT tul nagy: %d B (max 256)" % len(tadat))
         parts.append(block("TADAT", tadat))
+    if len(szotar) > 2560:
+        raise SystemExit("SZOTAR tul nagy: %d B (max 2560)" % len(szotar))
     parts.append(block("SZOTAR", szotar))
     parts.append(block("ALAPMAG", alapmag))
     if csomag:
@@ -72,6 +74,10 @@ def build(out_path, motor, szotar, alapmag, csomag=None, csomagnev=b"", eml=None
         parts.append(block("CSOMAG", head + csomag))
     if eml:
         parts.append(block("EMLEKEZET", eml))
+    if tartalek:
+        if len(tartalek) > 512:
+            raise SystemExit("TARTALEK tul nagy: %d B (max 512)" % len(tartalek))
+        parts.append(block("TARTALEK", tartalek))
     kazo = bytearray()
     for i, p in enumerate(parts, start=1):
         kazo.extend(bytes([0x02, 0x80, i]))   # pilóta-jeles sorszám
@@ -90,4 +96,5 @@ if __name__ == "__main__":
     cnev = sys.argv[6].encode() if len(sys.argv) > 6 else b""
     eml = read(sys.argv[7]) if len(sys.argv) > 7 else None
     tadat = read(sys.argv[8]) if len(sys.argv) > 8 else None
-    build(out, motor, szotar, alapmag, csomag, cnev, eml, tadat)
+    tart = read(sys.argv[9]) if len(sys.argv) > 9 else None
+    build(out, motor, szotar, alapmag, csomag, cnev, eml, tadat, tart)

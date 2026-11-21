@@ -36,14 +36,22 @@ kiforrott modell után, motor-átírás nélkül:
   valahol szűkös — mindig konkrét, működő alternatívával.
 - Minden fenti mappához (motor, szótár, chat, tudás) 50–150 bájt tartalék tartozik.
 
-## Jelenlegi állapot (v2.3)
+## Jelenlegi állapot (v2.4)
 
-- `PIOCO.T81`: **6755 B / 7 blokk** — BOOT, MOTOR (4052 B), TADAT (125 B,
-  új), SZÓTÁR, ALAPMAG, CSOMAG, EMLÉKEZET
-- Szótár 129 token / 852 B, bigramtábla 655 B / 270 átmenet (4 bites súly)
-- Új a v2.3-ban: **naptár + év** (hetnév-számítás 2000–2099, 36525 dátumra
-  ellenőrizve), `what day` / `what time` intentek, **képzelet-modul**
-  (IF/WOULD/COULD/WISH → véletlen mag-token a generátorban), FACTTAB bővítés
-  (SLEEP/TIRED/HUNGRY/ANGRY). Részletek:
-  `fazis-4-tudas-trening-teszt/08-naptar-es-kepzelet.md`
-- Következő lépés: **trigram-tábla** (trigram_train.py + TRILOOK a motorban)
+- `PIOCO.T81`: **7219 B / 8 blokk** — BOOT, MOTOR (3976 B), TADAT (245 B),
+  SZÓTÁR (1828 B = szótár + bigramm + **trigramm**), ALAPMAG, CSOMAG,
+  EMLÉKEZET, TARTALEK (új, 0x7E00, 92 B)
+- Szótár **140 token / 924 B**, bigrammtábla **791 B / 229 átmenet**
+  (4 bites súly, csoport-végjellel), **trigrammtábla 113 B / 16 kulcs / 32
+  követőadat**
+- Új a v2.4-ben: **trigram-lépés** — `eszkozok/trigram_train.py`, a motorban
+  `TRIGOTO` (kulcskeresés) + `TRIINIT` (a bg-fejléc extra eltolásából veszi a
+  tri-tábla címét); a generátor trigram-találatnál a trigramm-követőcsoportból
+  szavaz, egyébként bigrammal folytat. Javítva a v2.2 óta lappangó két hiba:
+  BGCHOOSE A-regiszter-clobbering és szellemt átmenetek a csoport-végjel
+  hiányában (mostantól minden páros csoport után 0x00 végjel van).
+  Részletek: `eszkozok/trigram_train.py`, `motor/pico.asm` (TRIGOTO/TRIINIT)
+- Motor-tartalék: **120 B** (a 4096-os zónahatárig); a következő adat-bővítések
+  már a TADAT/TARTALEK zónákba mennek, nem a motorba
+- Következő lépés: emulatoros teszt a generálandó válaszminőségre, majd
+  tudáscsomag-bővítés

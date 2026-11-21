@@ -122,6 +122,18 @@ CMSG        EQU PB+0xEE       ; 2 bájt: tárolandó üzenet címe
 TMPHDR      EQU PB+0xF0     ; 20 bájt: összerakott fejléc (0-zárt)
 IMAGF       EQU PB+0xA5     ; képzelet-modul: jelző (REASON állítja)
 IMAGSEEDT   EQU PB+0xA6     ; indító-token (BGWRITE induláskor elfogyasztja)
+TRP2        EQU PB+0xA7     ; trigramm-kulcs elso fele (ketto valtast ezelott)
+TRISET      EQU PB+0xA8     ; TRIGOTO talalat-jelzo (0/1)
+TRIDE       EQU PB+0xA9     ; 2 bajt: trigramm koveto-csoport cime
+TRIB        EQU PB+0xAB     ; 2 bajt: trigramm-tabla cime (0 = nincs)
+FACTTAB     EQU TADAT+0x7D    ; fakt-kulcsszavak (tadat.asm)
+NEGTAB      EQU TADAT+0xCC    ; tagnado szok (tadat.asm)
+CLRTAB      EQU TADAT+0xD4    ; megszunes-jelzo szok (tadat.asm)
+TXTNOTED    EQU TADAT+0xED    ; "[noted]" (tadat.asm)
+ASKH        EQU 0x7E00        ; emlek-rakerdezes (tartalek.asm)
+ASKS        EQU 0x7E1E
+TXTDUNNO    EQU 0x7E39
+TXTABORT    EQU 0x7E54
 
         ORG MOTORBASE
 
@@ -993,6 +1005,8 @@ BGWRITE:
         LD (HL),A
         XOR A
         LD (BGFROM),A
+        XOR A
+        LD (TRP2),A             ; trigramm: az elso szotol csak bigram indul
         LD A,(IMAGSEEDT)
         OR A
         JR Z,BG_NIMG
@@ -1023,10 +1037,14 @@ BG_LOOP:
         CALL NEWLINE
         RET
 BG_GO:
-        LD A,(BGFROM)
+        CALL TRIGOTO            ; (TRP2, BGFROM) kulcs -> TRISET/TRIDE
         CALL BGCHOOSE
         OR A
         JR Z,BG_END
+        PUSH AF
+        LD A,(BGFROM)
+        LD (TRP2),A             ; a kovetkezo korban a trigramm-kulcs elso fele
+        POP AF
         LD (BGFROM),A
         CALL BGWORD
         JR BG_LOOP
@@ -1065,16 +1083,24 @@ BGC_UNI:
         CALL SELUNI
         RET
 
-; BGGOTO: A = token-ID -> DE = csoport címe (DE=0, ha nincs átmenet);
+; BGGOTO: DE = csoport címe a BGFROM-tokenhez (DE=0, ha nincs átmenet);
+; a tokent nem A-ban veszi, hanem a BGFROM-ból olvassa — így a hőmérséklet-
+; elágazás után maradó A-érték sem ronthatja el a csoport-választást;
+; ha TRISET=1, a TRIGOTO talált trigramm-követőcsoportot, azt adja.
 ; PAR nullázva (az olvasás mindig párosan indul)
-; bigramm-tábla: [ntok][2 bájtos eltolások tokenenként][csoportok...]
+; bigramm-tábla: [ntok][2 bájtos eltolások tokenenként + 1 extra][csoportok...]
 BGGOTO:
         PUSH BC
         PUSH HL
-        LD C,A                  ; A-window: token elmentve
+        LD A,(TRISET)
+        OR A
+        JR Z,BG_BB
+        LD DE,(TRIDE)
+        JR BG_EP
+BG_BB:
         XOR A
         LD (PAR),A
-        LD A,C
+        LD A,(BGFROM)
         DEC A
         ADD A,A
         INC A                   ; BC = 1 + 2*(id-1) (ntok-bájt után)
@@ -1100,8 +1126,74 @@ BGGOTO:
         RET
 BG_GZ:
         LD DE,0
+BG_EP:
+        XOR A
+        LD (PAR),A
         POP HL
         POP BC
+        RET
+
+; TRIGOTO: a (TRP2, BGFROM) trigramm-kulcsot keresi a TRIB-ben álló
+; tabla [t1][t2][n][parok][0] bejegyzései között; találat: TRISET=1 és
+; TRIDE = követőcsoport cime (a BGCHOOSE trigrammból szavaz), missz:
+; TRISET=0 (a BGGOTO nagyramban folytat). A/BC/DE/HL megmarad.
+TRIGOTO:
+        PUSH AF
+        PUSH BC
+        PUSH DE
+        PUSH HL
+        XOR A
+        LD (TRISET),A
+        LD HL,(TRIB)
+        LD A,H
+        OR L
+        JR Z,TRG_E
+        LD A,(TRP2)
+        OR A
+        JR Z,TRG_E
+        LD B,A
+        LD A,(BGFROM)
+        LD C,A
+TRG_L:
+        LD A,(HL)
+        OR A
+        JR Z,TRG_E
+        CP B
+        JR Z,TRG_T2
+        INC HL
+        JR TRG_N
+TRG_T2:
+        INC HL
+        LD A,(HL)
+        CP C
+        JR Z,TRG_NH
+TRG_N:
+        INC HL                  ; HL -> n
+        LD A,(HL)
+        INC A
+        AND A                   ; carry torles (RRA előtt)
+        RRA                     ; A = ceil(n/2)
+        LD E,A
+        ADD A,A
+        ADD A,E                 ; A = 3*ceil(n/2)
+        INC A                   ; + vegjel
+        LD E,A
+        LD D,0
+        ADD HL,DE               ; HL -> kovetkezo kulcs
+        JR TRG_L
+TRG_NH:
+        INC HL                  ; HL -> elso par
+        LD A,(HL)
+        OR A
+        JR Z,TRG_E
+        LD (TRIDE),HL
+        LD A,1
+        LD (TRISET),A
+TRG_E:
+        POP HL
+        POP DE
+        POP BC
+        POP AF
         RET
 
 ; NXTENT: következő bigramm-elem beolvasása
@@ -1353,7 +1445,9 @@ SS_LK:
         POP HL
         RET
 
-; BIGRBASE: BIGR = a szótár-végjel utáni első bájt (a bigramm-tábla)
+; BIGRBASE: BIGR = a szótár-végjel utáni első bájt (a bigramm-tábla);
+; utána TRIINIT: a bigramm-fejléc extra eltolásából (index ntok+1) TRIB =
+; a trigramm-tábla címe (0 = nincs trigramm-tábla)
 BIGRBASE:
         LD HL,SZOTAR
         INC HL
@@ -1370,6 +1464,30 @@ BB_L:
 BB_E:
         INC HL
         LD (BIGR),HL
+        LD A,(HL)               ; a bg-fejléc ntok bájtja
+        LD C,A
+        ADD A,A
+        INC A                   ; BC = 1 + 2*ntok (extra eltolás helye)
+        LD C,A
+        LD B,0
+        INC HL
+        ADD HL,BC
+        LD A,(HL)
+        INC HL
+        LD L,A
+        LD H,(HL)
+        PUSH HL
+        POP DE                  ; DE = eltolás (0 = nincs)
+        LD HL,(BIGR)
+        ADD HL,DE
+        LD A,H
+        OR L
+        JR Z,BB_N
+        LD (TRIB),HL
+        RET
+BB_N:
+        LD HL,0
+        LD (TRIB),HL
         RET
 
 ; RND: A = véletlen bájt (R regiszter + FRAMES + seed)
@@ -2523,7 +2641,6 @@ TXTSPLASH:  db "P I O C O  A I",0
 TXTHELLO:   db "Hi! Ask me anything.",0
 TXTPROMPT:  db "> ",0
 TXTTHINK:   db "[thinking]",0
-TXTDUNNO:   db "Still learning about that.",0
 TXTNAM:     db "",0
 TXTTEMPSET: db "[temp ",0
 TXTREASON0: db "[reasoning off]",0
@@ -2536,38 +2653,10 @@ TXTPCO:     db "PIOCO",0
 ; a TAB13/DOWTAB/TXTDAYP/TXTTIS/WTAB/TIMTAB/IMAGTAB/IMAGSEED tablak a
 ; TADAT (0x6B00) blokkban vannak (motor/tadat.asm) — a motorzonan kivul
 
-; FACTTAB: [kulcsszo][0][bitkod] ismetles, lezaras 0
-FACTTAB:
-            db "HEAD",0,0
-            db "HURT",0,0
-            db "ACHE",0,0
-            db "SICK",0,1
-            db "ILL",0,1
-            db "FEVER",0,1
-            db "HAPPY",0,2
-            db "GLAD",0,2
-            db "SLEEP",0,3
-            db "TIRED",0,4
-            db "HUNGRY",0,5
-            db "ANGRY",0,6
-            db 0
-; NEGTAB: tagnalo szok, ezek eseten az ertek = 0
-NEGTAB:     db "NO",0
-            db "NOT",0
-            db 0
-; CLRTAB: a raKerdZesre a megszunest jelzo szavak
-CLRTAB:     db "GONE",0
-            db "BETTER",0
-            db "YES",0
-            db "GOOD",0
-            db "OK",0
-            db 0
-TXTNOTED:   db "[noted]",0
+; FACTTAB/NEGTAB/CLRTAB/TXTNOTED a TADAT-ban (tadat.asm); ASKH/ASKS/
+; TXTDUNNO/TXTABORT a TARTALEK-zonaban (tartalek.asm)
 TXTDATEQ:   db "enter date as dd mm yy:",0
 TXTYEARQ:   db "enter year as yy:",0
-ASKH:       db "i remember head pain. better?",0
-ASKS:       db "i remember unwell. better?",0
-TXTABORT:   db "[abort]",0
 
 ; véletlen válaszindítók (mind szótári szó)
 STARTTAB:
