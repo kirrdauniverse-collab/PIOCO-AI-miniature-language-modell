@@ -111,13 +111,14 @@ def main():
     assert z80_crc == py_crc, f"CRC eltérés: Z80=0x{z80_crc:04X} Python=0x{py_crc:04X}"
     print(f"PERSIST: mágia PC, verzió 1, nullák rendben; CRC-16 kereszteszt OK (0x{py_crc:04X})")
 
-    # --- 5. D_FILE szerkezet + splash ---
-    for row in range(24):
+    # --- 5. D_FILE szerkezet + splash (ROM-standard 25 sor + záró 0x76) ---
+    for row in range(25):
         base = DFILE + row * 33
         assert m[base + 32] == 0x76, f"{row}. sor: nincs sorzáró 0x76"
         for col in range(32):
             b = m[base + col]
             assert b <= 0x3F or 0x80 <= b <= 0xBF, f"tiltott kód a D_FILE-ban: {b:#04X} ({row},{col})"
+    assert m[DFILE + 25 * 33] == 0x76, "hiányzik a záró stop-bájt a 25. sor után"
     def expect_at(row, col, text):
         base = DFILE + row * 33 + col
         got = [m[base + i] for i in range(len(text))]
@@ -125,10 +126,10 @@ def main():
         assert got == want, f"splash eltérés ({row},{col}): {got} != {want}"
     expect_at(2, 5, "PIOCO AI")
     expect_at(7, 9, "16K  PIOCO  0.1")
-    print("D_FILE: 24 sor, soronként 32 engedélyezett kód + 0x76; splash-ok a helyükön")
+    print("D_FILE: 25 sor (24 tartalmi + 1 alsó), soronként 32 engedélyezett kód + 0x76, záró stop-bájt; splash-ok a helyükön")
 
     # --- 6. írás-zóna-ellenőrzés ---
-    zones = [(0x4082, 0x41FF), (0x4200, 0x4517),
+    zones = [(0x400C, 0x400F), (0x4082, 0x41FF), (0x4200, 0x4539),
              (0x4600, 0x4600 + len(motor0) - 1),
              (0x5400, 0x5CFF), (0x6300, 0x6AFF), (0x6B00, 0x6B3F),
              (0x7F00, 0x7FFF), (0xFF00, 0xFFFF)]

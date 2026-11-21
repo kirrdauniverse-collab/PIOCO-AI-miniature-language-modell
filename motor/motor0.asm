@@ -10,14 +10,18 @@
 ; ============================================================
 
 STG1LOAD EQU 0x0000        ; @EPITES@ — a stage-1 LOADBLK tényleges címe (epites.py tölti)
+BOOTMODE EQU 0x0000        ; @EPITES@ — a stage-1 BOOTMODE címe (epites.py tölti)
 DFILE   EQU 0x4200
 
         ORG 0x4600
 MOT0:
+        LD A,(BOOTMODE)
+        OR A
+        JR NZ,MSKIP             ; rezidens módban már a helyükön vannak
         CALL STG1LOAD           ; PIOCOSZO  → 0x5400
         CALL STG1LOAD           ; PIOCOALAP → 0x6300
         CALL STG1LOAD           ; PIOCOPACK → 0x6B00
-        LD HL,SPLASH
+MSKIP:  LD HL,SPLASH
         LD BC,DFILE + 2*33 + 5
         CALL PRINTAT
         LD HL,SPLASH2

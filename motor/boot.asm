@@ -10,15 +10,18 @@
 ;   - saját D_FILE UI: 0x4200, 24 × (32 + 0x76) = 792 B — fázis-2 5.2
 ;   - PERSIST: 0x4100, mágia 'P','C', verzió, CRC-16 (0x1021, 0xFFFF)
 ;
-; NYÍLT TÉTELEK (emulátor-ellenőrzés a következő körben):
-;   - IN-BYTE szinkron/pilot-kezelés blokkhatárokon
-;   - IN-BYTE regiszter-megőrzése (HL/DE feltételezett — a ROM-lista
-;     szerint a bájt C-ben érkezik; AF felülírása biztos)
-;   - a D_FILE rendszerváltozó-mutató beírása (sysvars-cím) — nem írjuk
+; NYÍLT TÉTELEK (emulátor-ellenőrzés):
+;   - IN-BYTE szinkron/pilot-kezelés blokkhatárokon (szalag mód)
+;   - IN-BYTE regiszter-megőrzése (HL/DE feltételezett; AF felülírása biztos)
 ;
-; Menet: képernyő-nullázás → PERSIST init → következő blokk (típus 2,
-; MOTOR) betöltése a 0x4600-ra → átugrás oda. A további blokkokat a
-; stage-2 motor hívja be (CALL az itt rögzített LOADBLK címre).
+; Menet: PERSIST init → üzemmód (BOOTMODE):
+;   0 = SZALAG: következő blokk (típus 2, MOTOR) betöltése 0x4600-ra;
+;   1 = REZIDENS (.P terjesztés): a REM-testek másolása a végleges
+;       címekre (RESCOPY) — szalagolvasás nélkül.
+; → képernyő-nullázás (ROM-standard 25 sor + záró 0x76 = 826 B) →
+;   D_FILE/DF_CC sysvar-mutatók a saját képernyőre (címek hitelesítve a
+;   zmakebas ZX81 fejléc-receptjéből: D_FILE @0x400C, DF_CC @0x400E) →
+;   átugrás a 0x4600-ra. A további blokkokat a stage-2 motor hívja be.
 ; ============================================================
 
 INBYTE  EQU 0x034C        ; ROM: bájt a szalagról → C
@@ -30,15 +33,31 @@ STG2    EQU 0x4600
 
         ORG 0x4082
 BOOT:
-        CALL SCRFILL
         CALL PERSISTINIT
-        CALL LOADBLK           ; következő blokk = PIOCOTIP2 → 0x4600
+        LD A,(BOOTMODE)
+        OR A
+        JR Z,BTAPE
+        CALL RESCOPY           ; rezidens mód: REM-testek → végleges címek
+        CALL SCRFILL
+        JR BDFSET
+BTAPE:  CALL LOADBLK           ; szalag mód: PIOCOTIP2 → 0x4600
+        CALL SCRFILL
+BDFSET: LD HL,0x400C           ; D_FILE sysvar ← 0x4200
+        LD (HL),0x00
+        INC HL
+        LD (HL),0x42
+        LD HL,0x400E           ; DF_CC sysvar ← 0x4201
+        LD (HL),0x01
+        INC HL
+        LD (HL),0x42
         JP STG2
 
-; ---- képernyő: 24 sor × (32 db 0x00 + 0x76) = 792 B ----
+; ---- képernyő: ROM-standard 25 sor × (32×0x00 + 0x76) + záró 0x76 = 826 B ----
+; (24 tartalmi sor + 1 alsó sor; a záró 0x76 @0x4539 a megjelenítő
+;  leállító-bájtja — nélküle a NMI átfutna a 0x76-mentes scratch-en)
 SCRFILL:
         LD HL,DFILE
-        LD B,24
+        LD B,25
 SCRL:   LD C,32
 SCRC:   LD (HL),0
         INC HL
@@ -47,6 +66,8 @@ SCRC:   LD (HL),0
         LD (HL),0x76
         INC HL
         DJNZ SCRL
+        LD (HL),0x76           ; záró stop-bájt
+        INC HL
         RET
 
 ; ---- PERSIST init: mágia + verzió + nullázás + CRC-16 ----
@@ -177,6 +198,41 @@ RD4L:   CALL INBYTE
         DJNZ RD4L
         RET
 
+; ---- rezidens mód: a REM-testek másolása a végleges címekre ----
+; sorrend-KÉNYSZER: ALAPMAG → PACK → SZÓTÁR → MOTOR. Indoklás: a SZÓTÁR
+; célzónája (0x5400+) átfedi az ALAPMAG/PACK REM-forrásait, a MOTOR célja
+; (0x4600) pedig a SZÓTÁR forrását — mindegyik csak már kimásolt
+; területet írhat felül. A @PG*@ immediate-eket a pgen.py patcheli;
+; BLKCPY: HL = forrás, DE = cél, BC = hossz
+RESCOPY:
+SRC_ALAP: LD HL,0x0000         ; @PGALAP@ — ALAPMAG REM-test címe
+        LD DE,0x6300
+        LD BC,0x0800           ; 2048 B
+        CALL BLKCPY
+SRC_PACK: LD HL,0x0000         ; @PGPACK@ — CSOMAG REM-test címe
+        LD DE,0x6B00
+        LD BC,0x0040           ; 64 B
+        CALL BLKCPY
+SRC_SZO: LD HL,0x0000          ; @PGSZO@ — SZÓTÁR REM-test címe
+        LD DE,0x5400
+        LD BC,0x0900           ; 2304 B
+        CALL BLKCPY
+SRC_MOT: LD HL,0x0000          ; @PGMOT@ — MOTOR REM-test címe
+        LD DE,0x4600
+SRC_MOTN: LD BC,0x0000         ; @PGMOTN@ — motor0.bin hossza
+        CALL BLKCPY
+        RET
+
+BLKCPY: LD A,(HL)
+        LD (DE),A
+        INC HL
+        INC DE
+        DEC BC
+        LD A,B
+        OR C
+        JR NZ,BLKCPY
+        RET
+
 ; ---- adatterületek (a 0x4200 alatt maradnak) ----
 TBL:    DB 2,0x46,0x00        ; típus 2 → 0x4600 (MOTOR)
         DB 3,0x54,0x00        ; típus 3 → 0x5400 (SZÓTÁR)
@@ -187,3 +243,4 @@ TGT:    DB 0,0
 LENW:   DB 0,0
 CRCRX:  DB 0,0
 CRCN:   DB 0
+BOOTMODE: DB 0                ; 0 = szalag mód, 1 = rezidens (.P) mód

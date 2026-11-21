@@ -194,7 +194,7 @@ A ZX81 karakterkészlete 64 glifet tartalmaz a 0x00–0x3F tartományban (szók�
 
 ### 5.2 A D_FILE elrendezése a saját UI-ban
 
-A motor saját képernyője **nem a gyári dinamikus D_FILE**, hanem rögzített elrendezés: **24 sor × (32 karakter + 1 db `0x76`) = 792 bájt**, a D_FILE-mutató a 0x4200-ra állítva. A zóna maradéka (1024 − 792 = **232 B**) scratch: ideiglenes sorösszeállítás — ide is tilos a `0x76`, hogy egy elcsúszott mutató se fagyaszthassa a gépet.
+A motor saját képernyője **nem a gyári dinamikus D_FILE**, hanem rögzített elrendezés: **24 sor × (32 karakter + 1 db `0x76`) = 792 bájt**, a D_FILE-mutató a 0x4200-ra állítva. A zóna maradéka (1024 − 792 = **232 B**) scratch: ideiglenes sorösszeállítás — ide is tilos a `0x76`, hogy egy elcsúszott mutató se fagyaszthassa a gépet. **D-3.4 pontosítás (3. fázis, 2026-11-21):** a ROM-standard *kifejtett* szerkezethez a 24 tartalmi sor mellé még 1 alsó sor és egy záró stop-bájt jár: **25 × 33 + 1 = 826 B** (záró `0x76` a 0x4539-címen), a scratch így 198 B-ra szűkül. A sorvégek és a stop-bájt kivételével a `0x76`-tilalom változatlan — a ROM megjelenítőrutina e struktúra nélkül átfutna a képernyő-zónán.
 
 ### 5.3 A print-tölcsér (egyetlen kiírási kapu)
 

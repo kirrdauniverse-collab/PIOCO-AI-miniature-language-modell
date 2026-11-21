@@ -28,9 +28,11 @@ def main():
     print(f"stage-1 (boot.bin):  {len(code)} B (0x4082–0x{end-1:04X}, {BOOT_END-end} B ráhagyás)")
 
     src = open(os.path.join(BASE, "motor", "motor0.asm"), encoding="utf-8").read()
-    marker = "EQU 0x0000        ; @EPITES@"
-    assert marker in src, "motor0.asm: hiányzik az @EPITES@ jelölő"
-    src = src.replace(marker, f"EQU 0x{lab['LOADBLK']:04X}        ; @EPITES@ (boot.asm LOADBLK)")
+    assert lab["BOOTMODE"] < BOOT_END, "BOOTMODE a boot-zónán kívülre esne"
+    for old, new in [("STG1LOAD EQU 0x0000", f"STG1LOAD EQU 0x{lab['LOADBLK']:04X}"),
+                     ("BOOTMODE EQU 0x0000", f"BOOTMODE EQU 0x{lab['BOOTMODE']:04X}")]:
+        assert old in src, f"motor0.asm: hiányzik az @EPITES@ jelölő ({old})"
+        src = src.replace(old, new)
     mcode, mlab = assemble(src)
     mend = STG2 + len(mcode)
     assert len(mcode) <= STG2_MAX, f"stage-2 túl nagy: {len(mcode)} B"
@@ -38,7 +40,7 @@ def main():
     with open(os.path.join(ADAT, "motor0.bin"), "wb") as f:
         f.write(mcode)
     print(f"stage-2 (motor0.bin): {len(mcode)} B (0x4600–0x{mend-1:04X}, {STG2_MAX-len(mcode)} B ráhagyás)")
-    print(f"STG1LOAD = 0x{lab['LOADBLK']:04X} (motor0 erről hívja a betöltőt)")
+    print(f"STG1LOAD = 0x{lab['LOADBLK']:04X}, BOOTMODE = 0x{lab['BOOTMODE']:04X} (motor0 ezeket használja)")
     print("OK: motor/ források assemble-elve — futás emulátorban a következő körben")
 
 if __name__ == "__main__":
