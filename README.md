@@ -3,7 +3,7 @@
 > Miniatűr, **valóban generáló** AI nyelvi modell a Sinclair ZX81-hez (16 KB RAM) —
 > egyetlen összefüggő, több betöltési sávot tartalmazó **.T81** kazettafájlban.
 
-**Állapot:** 🟡 **1. fázis (Ötlet és koncepció) — KÉSZ** · Következő: 2. fázis (tervezés és dizájn)
+**Állapot:** 🟢 **2. fázis (Tervezés, működés és dizájn) — KÉSZ** · Következő: 3. fázis (kódolás és csomagolás)
 
 ## Mi ez?
 
@@ -29,6 +29,7 @@ ingerlésben és vitában is saját megfogalmazással, több körön át emléke
 | --- | --- |
 | [`MASTERPROMPT.md`](MASTERPROMPT.md) | A projekt mesterpromptja (követelmények, működési elvek, szabályok) + a projektgazda kiegészítése (5. fejezet) |
 | [`docs/fazis-1-koncepcio.md`](docs/fazis-1-koncepcio.md) | **1. fázis:** koncepció, realitásvizsgálat, modultérkép, memóriatérkép-javaslat, .T81 sávstruktúra, fázisterv |
+| [`docs/fazis-2-terveles.md`](docs/fazis-2-terveles.md) | **2. fázis:** végleges memóriatérkép (belső bontásokkal), bitmezők, karaktertábla, .T81 blokkformátum, képernyőtervek, vezérlők, Agent-parancsnyelv, emlékeztető-modul |
 | [`docs/FEJLESZTESI-NAPLO.md`](docs/FEJLESZTESI-NAPLO.md) | Fejlesztési napló fázisonként |
 
 ## Tervezett fázisok
@@ -36,8 +37,8 @@ ingerlésben és vitában is saját megfogalmazással, több körön át emléke
 | # | Fázis | Állapot |
 | --- | --- | --- |
 | 1 | Ötlet és koncepció | ✅ kész (2026-11-21) |
-| 2 | Tervezés, működés és dizájn — végleges memóriatérkép, bitmezők, sávformátum, képernyők, vezérlők, Agent-parancsok | ⏳ következik |
-| 3 | Kódolás és csomagolás — Z80 motor, PC-s eszközök, .T81 összeállítás | ⬜ |
+| 2 | Tervezés, működés és dizájn — végleges memóriatérkép, bitmezők, sávformátum, képernyők, vezérlők, Agent-parancsok | ✅ kész (2026-11-21) |
+| 3 | Kódolás és csomagolás — Z80 motor, PC-s eszközök, .T81 összeállítás | ⏳ következik |
 | 4 | Tudásbázis, tréning és tesztelés — alaptudás + témacsomagok, emulátoros ellenőrzés | ⬜ |
 
 ## Repó struktúra
