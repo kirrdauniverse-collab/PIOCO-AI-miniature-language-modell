@@ -17,3 +17,17 @@
   - tréning-eszközterv (PC), fázisterv, kockázati lista.
 - Döntések: hivatalos név **PIOCO AI**; turbo/fast tape a fejlesztés alatt **kikapcsolva**; emlékezet-mentés szalagvég-re hozzáfűzéssel, dátumbélyeggel.
 - **Következő:** 2. fázis — tervezés és dizájn (végleges memóriatérkép, bitmezők, karaktertábla, sávformátum, képernyők, Agent-parancsok).
+
+## 2026-11-21 · Mesterprompt-kiegészítés beépítve (1. fázis v1.1) ✅
+
+- `MASTERPROMPT.md` új 5. fejezete rögzíti a projektgazda kiegészítését (fogalmak, tömörítés, D_FILE-buktatók, viselkedési példák) — hű, szöveghű változatban.
+- `docs/fazis-1-koncepcio.md` frissült (v1.1):
+  - új **2.1 Fogalomtár** (motor vs. tudástár; token; paraméter/súly; temperature; reasoning),
+  - **4 bites kvantálás (`-8..+7`, bájtonként 2 súly)** beépül a generálásba és a PC-s tréning eszközbe,
+  - temperature = Z80 **R regiszter + FRAMES (50 Hz)** entropiaforrás,
+  - reasoning a **`[THINK_START]` / `[THINK_END]`** jelöléssel, hangulat-felismeréssel (ingerlés/humor/vita),
+  - **PERSIST_BLOCK** (védett tartós blokk) és **BOOT** (indító sáv) elnevezés, overlay-k,
+  - új **7. fejezet — viselkedési képességek**: humor/ingerlés/vitakövetés, **rajzolás 64×44-en hozzáadó módban** (352 B vászon a MUNKATERÜLET-ben), **BASIC-írás és utólagos módosítás**, **időzített emlékeztető** FRAMES-sel,
+  - **pörgő karakterek** effekt biztonságos tartományra szűrve,
+  - memóriatérkép-zónák leírása frissült (a bájtösszegek és a 16 384 B-es folytonos lefedés **változatlan**, újraszámolva),
+  - fázisterv (2. fázis bővült: rajzvászon/BASIC-puffer/elhelyezés, emlékeztető-modul) és a kockázati lista **6. ponttal** bővült.

@@ -14,15 +14,20 @@ feldolgozási láncot valósít meg:
 → állapotfrissítés → generálás hőmérséklet-vezérléssel.**
 
 A tudás kazettás csomagokból jön (multiload), a személyes adatok (név, nem, születési
-adat, dátum/óra) egy **védett tartós memóriablokkba** kerülnek, amelyet a későbbi
-betöltési sávok nem írnak felül. Kétállapotú információk (igen/nem, fáj/nem fáj)
-**1 biten** tárolódnak, dátumbélyeggel és elavulás-kezeléssel.
+adat, dátum/óra) egy **védett tartós memóriablokkba** (`PERSIST_BLOCK`) kerülnek,
+amelyet a későbbi betöltési sávok nem írnak felül. Kétállapotú információk
+(igen/nem, fáj/nem fáj) **1 biten** tárolódnak, dátumbélyeggel és elavulás-kezeléssel.
+A modell nyelve: szótag/toldalék tokenek és **4 bites egész súlyok** (`-8..+7`,
+bájtonként kettő), gondolkodása a `[THINK_START]` … `[THINK_END]` blokkban fut.
+Tud **rajzolni** (64×44-es plot-vásznon, hozzáadó módban), **rövid BASIC programot
+írni és utólag módosítani**, **időzített emlékeztetőt** tartani, és humorban,
+ingerlésben és vitában is saját megfogalmazással, több körön át emlékező állásponttal válaszol.
 
 ## Dokumentumok
 
 | Fájl | Tartalom |
 | --- | --- |
-| [`MASTERPROMPT.md`](MASTERPROMPT.md) | A projekt mesterpromptja (követelmények, működési elvek, szabályok) |
+| [`MASTERPROMPT.md`](MASTERPROMPT.md) | A projekt mesterpromptja (követelmények, működési elvek, szabályok) + a projektgazda kiegészítése (5. fejezet) |
 | [`docs/fazis-1-koncepcio.md`](docs/fazis-1-koncepcio.md) | **1. fázis:** koncepció, realitásvizsgálat, modultérkép, memóriatérkép-javaslat, .T81 sávstruktúra, fázisterv |
 | [`docs/FEJLESZTESI-NAPLO.md`](docs/FEJLESZTESI-NAPLO.md) | Fejlesztési napló fázisonként |
 
