@@ -1,8 +1,8 @@
 # 4. fázis — Tudás, tréning, tesztelés (MISTRAL munkaterület)
 
-**Állapot:** futóvá tett vezérlés, generátor **és emlékezet**. A
-`PIOCO.T81` **5079 B, 6 blokk**, kilencféle automatikus vizsgálat zöld
-(szótárforma, bigrammforma + emlékforma is).
+**Állapot:** futóvá tett vezérlés, generátor, emlékezet **és
+chat-napló/görgetés**. A `PIOCO.T81` **5907 B, 6 blokk**, kilencféle
+automatikus vizsgálat zöld.
 
 ## Mappa
 
@@ -12,8 +12,21 @@
 - `04-kesz-csomagok.md` — csomag-állapotok + a tervezett témák
 - `05-vezervek-es-nagygenerator.md` — bekötött SHIFT-vezérlők,
   teljes billentyűzet ENTER-rel, bigramm-generátor 4 bites súlyokkal
-- `06-emlekezet-es-mentes.md` — **új**: 4 bájtos emlékrekordok a 0x6700-on,
+- `06-emlekezet-es-mentes.md` — 4 bájtos emlékrekordok a 0x6700-on,
   dátum-bekérés, fakt-felismerés, 14 napos elavulás, SHIFT+S
+- `07-chat-naplo-es-gorgetes.md` — **új**: CHAT-napló inverz fejlécekkel,
+  sor-/oszlopkurzoros nyomtatómag, SHIFT+5/6 görgetés
+
+## Mit hozott a negyedik lépés?
+
+- új nyomtatómag: sor-/oszlopkurzor (DFROW/DFCOL → DFILE + 33×sor + oszlop),
+  32 oszlopnél sortörés, a 23. sornál görgetés — a hosszú beírás már nem
+  sértheti a 0x76-orterminátorokat (rejtett hiba javítva)
+- CHAT-napló (0x6001): [fejléc][0][szöveg][0] formában; fejléc =
+  `YOU m:ss [tt]` ill. `PIOCO m:ss [tt] sS`, inverzen
+- SHIFT+5/6: message-by-message böngésző (vissza/előre, bármely billentyű
+  kilép), a legújabb üzenettel indul
+- válaszidő-mérés FRAMES-pillanatképpel, token-számláló a BGWORD-ben
 
 ## Mit hozott a harmadik lépés?
 

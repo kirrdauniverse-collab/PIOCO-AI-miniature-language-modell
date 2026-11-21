@@ -19,6 +19,11 @@
 ; v2.1 új: EMLÉKEZET (06 blokk, 0x6700) — 4 bájtos emlékrekordok,
 ; dátum-bekérés induláskor, fakt-felismerés, 14 napos elavulás,
 ; SHIFT+S mentés (PROFIL dátumbélyeg + későbbi kazetta-írás).
+;
+; v2.2 új: CHAT-napló (0x6001) inverz fejlécekkel (m:ss, token,
+; generálási másodperc), SHIFT+5/6 görgetés; a nyomtatómag
+; sor-/oszlopkurzoros — a hosszú sorok már nem írják felül a
+; 0x76-orterminátorokat, és a 23. sornál a kép felfelé görget.
 ; ============================================================
 
 ; ---- Zónák (fázis-2 memóriatérkép) ----
@@ -30,6 +35,9 @@ MOTORBASE   EQU 0x4600
 SZOTAR      EQU 0x5600
 KB_BASE     EQU 0x6C00        ; ALAPMAG: betöltött tudáslánc (kb_compile)
 CHAT        EQU 0x6000
+CHATM       EQU 0x6000           ; napló-mágnes (0xA5)
+CHATM0      EQU 0x6001           ; itt indul az első rekord
+; rekord: [fejléc][0][szöveg][0]
 MUNKAT      EQU 0x6800
 TARTALEK    EQU 0x7E00
 VEREMTOP    EQU 0x7FFF
@@ -59,7 +67,8 @@ LINELEN     EQU PB+0x40
 TOKBUF      EQU PB+0x48       ; token-ID-k (64 B)
 TOKCNT      EQU PB+0x88
 INTENT      EQU PB+0x89
-DFCUR       EQU PB+0xA0       ; 2 bájt: D_FILE-kurzor
+DFROW       EQU PB+0xA0       ; kurzor sor (0..23)
+DFCOL       EQU PB+0xA1       ; kurzor oszlop (0..31)
 THINKFLG    EQU PB+0xA2
 RNDSEED     EQU PB+0xA3
 SHIFTF      EQU PB+0xA4       ; SHIFT lenyomva (GETKEY állítja)
@@ -82,6 +91,16 @@ MONNOW      EQU PB+0xE0       ; aktuális hónap (1..12)
 EMLBIT      EQU PB+0xE1       ; FACTSET/EMSET: aktuális bitkód (0xFF = nincs)
 EMLVAL      EQU PB+0xE2       ; EMSET: érték (0/1)
 DOYNOW      EQU PB+0xE3       ; DOY30: nap-index az év elejétől
+TMPW        EQU PB+0xE4       ; TMPHDR írópointer
+ELAPS       EQU PB+0xE5       ; utolsó generálás eltelt másodperce
+TOKSET      EQU PB+0xE6       ; a sorhoz tartozó token darabszám
+GENCTR      EQU PB+0xE7       ; BGWORD hívások számlálója (max 99)
+CHATW       EQU PB+0xE8       ; 2 bájt: CHAT-napló írópointer
+FRSNAP      EQU PB+0xEA       ; 2 bájt: FRAMES-pillanatkép (GÉNESZ előtt)
+HNDEX       EQU PB+0xEC       ; history-browser: mutatott üzenet sorszáma
+CDIR        EQU PB+0xED       ; üzenet iránya: 0 = YOU, 1 = PIOCO
+CMSG        EQU PB+0xEE       ; 2 bájt: tárolandó üzenet címe
+TMPHDR      EQU PB+0xF0       ; 20 bájt: összerakott fejléc (0-zárt)
 
         ORG MOTORBASE
 
@@ -137,6 +156,16 @@ MAINLOP:
         LD HL,TXTPROMPT
         CALL PRTLN
         CALL READLINE
+        CALL TOKENIZE
+        LD A,(TOKCNT)
+        LD (TOKSET),A
+        XOR A
+        LD (ELAPS),A
+        XOR A
+        LD (GENCTR),A
+        XOR A                   ; irány: YOU
+        LD HL,BLINE
+        CALL CHATADD            ; fejléc + sor a CHAT-naplóba és képernyőre
         LD A,(THINKFLG)
         OR A
         JR Z,NOSHOW
@@ -144,10 +173,16 @@ MAINLOP:
         CALL PRTLN
         CALL NEWLINE
 NOSHOW:
-        CALL TOKENIZE
+        CALL SNAPFR
         CALL REASON
-        CALL FACTSET            ; fakt-kulcsszó keresés -> EMLEMLET-intent
+        CALL FACTSET
         CALL GENERATE
+        CALL ELAPSEC
+        LD A,(GENCTR)
+        LD (TOKSET),A
+        LD A,1                  ; irány: PIOCO
+        LD HL,RESP
+        CALL CHATADD
         JR MAINLOP
 
 ; ================= KÉPERNYŐ =================
@@ -171,7 +206,79 @@ CLRS_C:
         DJNZ CLRS_R
         LD A,0x76               ; D_FILE lezárása
         LD (HL),A
-        LD (DFCUR),HL
+        XOR A
+        LD (DFROW),A
+        LD (DFCOL),A
+        RET
+
+; CALCUR: HL = DFILE + 33×sor + oszlop (a kurzor tiszta címe)
+CALCUR:
+        PUSH DE
+        LD A,(DFROW)
+        LD L,A
+        LD H,0
+        LD D,H
+        LD E,L
+        ADD HL,HL
+        ADD HL,HL
+        ADD HL,HL
+        ADD HL,HL
+        ADD HL,HL               ; 32×sor
+        ADD HL,DE               ; 33×sor
+        LD DE,DFILE
+        ADD HL,DE
+        LD A,(DFCOL)
+        LD E,A
+        LD D,0
+        ADD HL,DE
+        POP DE
+        RET
+
+; PUTA: A = már konvertált ZX81-kód kiírása; a 32. oszlopot nem lépi
+; túl — sortörést és görgetést végez
+PUTA:
+        CP 0x76
+        RET Z
+        CP 0xC0
+        RET NC
+        PUSH DE
+        CALL CALCUR
+        LD (HL),A
+        POP DE
+        LD A,(DFCOL)
+        CP 31
+        JR NC,PUTA_N
+        INC A
+        LD (DFCOL),A
+        RET
+PUTA_N:
+        CALL NEWLINE
+        RET
+
+; SCRUP: a 23 sor tartalmát eggyel felfelé, az utolsó sor üres lesz
+SCRUP:
+        PUSH BC
+        LD HL,DFILE+33
+        LD DE,DFILE
+        LD BC,759
+SCR_L:
+        LD A,(HL)
+        LD (DE),A
+        INC HL
+        INC DE
+        DEC BC
+        LD A,B
+        OR C
+        JR NZ,SCR_L
+        LD B,32
+SCR_C:
+        XOR A
+        LD (DE),A
+        INC DE
+        DJNZ SCR_C
+        LD A,0x76
+        LD (DE),A
+        POP BC
         RET
 
 ; PRTLN: HL = 0-val lezárt szöveg, biztonsági maszkon át a D_FILE-ra
@@ -189,17 +296,25 @@ PRTLN:
 SAFEPCHR:
         PUSH HL
         CALL ASC2ZX
-        CP 0x76
-        JR Z,SPC_OUT
-        CP 0xC0
-        JR NC,SPC_OUT
-        LD HL,(DFCUR)
-        LD (HL),A
-        INC HL
-        LD (DFCUR),HL
-SPC_OUT:
         POP HL
+        CALL PUTA
         RET
+
+; PRTINV: HL = 0-val lezárt szöveg inverzen (ZX81 bit7);
+; csak a 0x00–0x3F tartomány invertálható biztonságosan
+PRTINV:
+        LD A,(HL)
+        OR A
+        RET Z
+        PUSH HL
+        CALL ASC2ZX
+        CP 0x40
+        JR NC,PI_P
+        OR 0x80
+PI_P:   CALL PUTA
+        POP HL
+        INC HL
+        JR PRTINV
 
 ; ASC2ZX: ASCII(32..127) -> ZX81-kód táblázattal
 ASC2ZX:
@@ -360,6 +475,8 @@ SC_TAB: db "1",1
         db "2",2
         db "3",3
         db "4",4
+        db "5",12
+        db "6",13
         db "9",9
         db "S",10
         db " ",11
@@ -374,7 +491,7 @@ SHIFTCMD:
 SC_L:
         LD A,(HL)
         OR A
-        JR Z,SC_X
+        JP Z,SC_X
         CP B
         JR Z,SC_F
         INC HL
@@ -407,6 +524,10 @@ SC_BIG:
         JR Z,SC_TOG
         CP 10
         JR Z,SC_SAVE
+        CP 12
+        JR Z,SC_HB              ; SHIFT+5: history one step back
+        CP 13
+        JR Z,SC_HF              ; SHIFT+6: history one step forward
         ; 11: megszakítás — sor eldobása
         LD A,1
         LD (ABRT),A
@@ -446,6 +567,20 @@ SC_SAVE:
         POP DE
         POP HL
         RET
+SC_HB:
+        CALL HISTB
+        POP AF
+        POP BC
+        POP DE
+        POP HL
+        RET
+SC_HF:
+        CALL HISTB
+        POP AF
+        POP BC
+        POP DE
+        POP HL
+        RET
 SC_X:
         POP AF
         POP BC
@@ -454,17 +589,17 @@ SC_X:
         RET
 
 NEWLINE:
-; kurzor a következő sor elejére (a 0x76 terminátor a helyén marad)
+; kurzor a következő sor elejére; a 23. sornál a kép felfelé görget
         PUSH AF
-        LD HL,(DFCUR)
-        LD A,L
-        AND 0x1F
-        CPL
-        ADD A,33                ; a sor hátralévő része (32 + terminátor)
-        LD E,A
-        LD D,0
-        ADD HL,DE
-        LD (DFCUR),HL
+        LD A,(DFROW)
+        CP 23
+        JR Z,NL_SC
+        INC A
+        LD (DFROW),A
+        JR NL_D
+NL_SC:  CALL SCRUP
+NL_D:   XOR A
+        LD (DFCOL),A
         POP AF
         RET
 
@@ -1013,6 +1148,13 @@ BGWORD:
         PUSH DE
         PUSH BC
         PUSH AF
+        PUSH BC
+        LD A,(GENCTR)
+        CP 99
+        JR NC,BGWC_1
+        INC A
+        LD (GENCTR),A
+BGWC_1: POP BC
         LD A,(RESPW)
         SUB RESP
         CP 30
@@ -1649,6 +1791,423 @@ DY_E:   ADD A,C
         POP BC
         RET
 
+; ================= CHAT-NAPLÓ =================
+; CHATADD: A = irány (0 = YOU, 1 = PIOCO); HL = üzenet (0-zárt);
+; TOKSET/ELAPS már beállítva. Fejléc a TMPHDR-be, tárolás a CHAT-zónába
+; (0x6001–0x66FF, elölről íródik, ha tele), fejléc inverzen képernyőre.
+CHATADD:
+        PUSH BC
+        PUSH DE
+        PUSH HL
+        LD (CMSG),HL
+        LD (CDIR),A
+        CALL MKHDR
+        LD A,(CHATM)
+        CP 0xA5
+        JR Z,CA_OK
+        LD A,0xA5
+        LD (CHATM),A
+        LD HL,CHATM0
+        LD (CHATW),HL
+CA_OK:  LD HL,(CHATW)
+        LD DE,TMPHDR
+        CALL ADDLEN
+        LD DE,(CMSG)
+        CALL ADDLEN
+        LD A,H
+        CP 0x67
+        JR C,CA_ST
+        LD HL,CHATM0
+        LD (CHATW),HL
+CA_ST:  LD DE,(CHATW)
+        LD HL,TMPHDR
+        CALL CSTRCPY
+        LD HL,(CMSG)
+        CALL CSTRCPY
+        LD HL,TMPHDR
+        CALL PRTINV
+        CALL NEWLINE
+        POP HL
+        POP DE
+        POP BC
+        RET
+
+; ADDLEN: HL += strlen(DE)+1
+ADDLEN:
+        PUSH BC
+        LD B,0
+ADL_L:  LD A,(DE)
+        OR A
+        JR Z,ADL_E
+        INC DE
+        INC B
+        JR ADL_L
+ADL_E:  INC B
+        LD A,B
+        ADD A,L
+        LD L,A
+        JR NC,ADL_2
+        INC H
+ADL_2:  POP BC
+        RET
+
+; CSTRCPY: HL = forrás, DE = cél; a 0-t is átmásolja; CHATW = utána
+CSTRCPY:
+        LD A,(HL)
+        LD (DE),A
+        INC HL
+        INC DE
+        OR A
+        JR NZ,CSTRCPY
+        LD A,E
+        LD (CHATW),A
+        LD A,D
+        LD (CHATW+1),A
+        RET
+
+; MKHDR: fejléc a TMPHDR-be (0-zárva)
+;   YOU m:ss [tt]       — felhasználó
+;   PIOCO m:ss [tt] sS  — modell (S = generálás másodperce)
+MKHDR:
+        XOR A
+        LD (TMPW),A
+        LD A,(CDIR)
+        OR A
+        JR Z,MKH_Y
+        LD HL,TXTPCO
+        CALL APPSZ
+        JR MKH_T
+MKH_Y:  LD HL,TXTYOU
+        CALL APPSZ
+MKH_T:  LD A,' '
+        CALL APPCH
+        LD HL,(FRAMES)
+        PUSH BC
+        LD BC,50
+        CALL DIV16             ; DE = másodpercek, HL = maradék
+        PUSH DE
+        EX DE,HL
+        LD BC,60
+        CALL DIV16             ; DE = percek, HL = másodpercek
+        EX DE,HL
+        CALL DECOUT            ; percek
+        LD A,':'
+        CALL APPCH
+        LD A,E                 ; E = másodpercek (0..49)
+        CALL APP2
+        POP DE
+        LD A,' '
+        CALL APPCH
+        LD A,'['
+        CALL APPCH
+        LD A,(TOKSET)
+        CALL APP2
+        LD A,']'
+        CALL APPCH
+        LD A,(CDIR)
+        OR A
+        JR Z,MKH_E
+        LD A,' '
+        CALL APPCH
+        LD A,'s'
+        CALL APPCH
+        LD A,(ELAPS)
+        CALL APP2
+MKH_E:  XOR A
+        CALL APPCH
+        POP BC
+        RET
+
+; APPSZ: HL = 0-zárt szöveg a TMPHDR-be
+APPSZ:
+        LD A,(HL)
+        OR A
+        RET Z
+        PUSH HL
+        CALL APPCH
+        POP HL
+        INC HL
+        JR APPSZ
+
+; APPCH: A = ASCII-bájt a TMPHDR-be (TMPW követi)
+APPCH:
+        PUSH HL
+        PUSH DE
+        LD E,A
+        LD A,(TMPW)
+        LD HL,TMPHDR
+        ADD A,L
+        LD L,A
+        JR NC,APC_1
+        INC H
+APC_1:  LD A,E
+        LD (HL),A
+        LD A,(TMPW)
+        INC A
+        LD (TMPW),A
+        POP DE
+        POP HL
+        RET
+
+; APP2: A = 0..99, két számjegyre
+APP2:
+        PUSH BC
+        PUSH DE
+        LD E,A
+        XOR A
+        LD B,A
+AP2_L:  LD A,E
+        CP 10
+        JR C,AP2_D
+        SUB 10
+        LD E,A
+        INC B
+        JR AP2_L
+AP2_D:  LD A,B
+        ADD A,'0'
+        CALL APPCH
+        LD A,E
+        ADD A,'0'
+        CALL APPCH
+        POP DE
+        POP BC
+        RET
+
+; DIV16: HL / BC -> DE = hányados, HL = maradék (ismételt kivonás)
+DIV16:
+        PUSH AF
+        LD DE,0
+DV_L:   LD A,H
+        CP B
+        JR C,DV_E
+        JR NZ,DV_S
+        LD A,L
+        CP C
+        JR C,DV_E
+DV_S:   LD A,L
+        SUB C
+        LD L,A
+        LD A,H
+        SBC A,B
+        LD H,A
+        INC DE
+        JR DV_L
+DV_E:   POP AF
+        RET
+
+; DECOUT: HL = érték (0..9999) -> ASCII a TMPHDR-be
+DECOUT:
+        PUSH BC
+        PUSH DE
+        PUSH AF
+        XOR A
+        LD D,A                ; vezető-nullák kihagyása
+        LD BC,1000
+        CALL DOD
+        LD BC,100
+        CALL DOD
+        LD BC,10
+        CALL DOD
+        LD A,L
+        ADD A,'0'
+        CALL APPCH
+        POP AF
+        POP DE
+        POP BC
+        RET
+DOD:
+        PUSH DE
+        LD E,0
+DD_L:   LD A,H
+        CP B
+        JR C,DD_E
+        JR NZ,DD_S
+        LD A,L
+        CP C
+        JR C,DD_E
+DD_S:   LD A,L
+        SUB C
+        LD L,A
+        LD A,H
+        SBC A,B
+        LD H,A
+        INC E
+        JR DD_L
+DD_E:   LD A,E
+        OR D
+        JR Z,DD_0
+        ADD A,'0'
+        CALL APPCH
+        LD D,1
+DD_0:   POP DE
+        RET
+
+; SNAPFR / ELAPSEC: válaszidő-mérés (FRAMES = 50 Hz)
+SNAPFR:
+        LD HL,(FRAMES)
+        LD (FRSNAP),HL
+        RET
+ELAPSEC:
+        LD HL,(FRAMES)
+        PUSH BC
+        LD DE,(FRSNAP)
+        LD A,L
+        SUB E
+        LD L,A
+        LD A,H
+        SBC A,D             ; HL = FRAMES - FRSNAP (atelépéskor nagy; fent korlátozva)
+        LD H,A
+        LD BC,50
+        CALL DIV16
+        LD A,E
+        CP 100
+        JR C,ELS_1
+        LD A,99
+ELS_1:  LD (ELAPS),A
+        POP BC
+        RET
+
+; ================= GÖRGETÉS (SHIFT+5/6) =================
+; HISTB: a CHAT-napló böngészője; belépéskor az utolsó üzenet,
+; SHIFT+5 = időben vissza, SHIFT+6 = előre, más billentyű = kilépés
+HISTB:
+        CALL HMCONTS
+        OR A
+        RET Z
+        DEC A
+        LD (HNDEX),A
+HB_L:   LD A,(HNDEX)
+        CALL HSHOWI
+        CALL GETKEY
+        OR A
+        JR Z,HB_L
+        PUSH AF
+        LD A,(SHIFTF)
+        OR A
+        POP AF
+        JR Z,HB_E
+        CP '5'
+        JR Z,HB_B
+        CP '6'
+        JR Z,HB_F
+HB_E:   CALL CLRSCR
+        RET
+HB_B:
+        LD A,(HNDEX)
+        OR A
+        JR Z,HB_L
+        DEC A
+        LD (HNDEX),A
+        JR HB_L
+HB_F:
+        LD A,(HNDEX)
+        INC A
+        LD E,A
+        CALL HMCONTS
+        CP E
+        JR C,HB_L
+        JR Z,HB_L
+        LD A,E
+        LD (HNDEX),A
+        JR HB_L
+
+; HMCONTS: A = üzenetek száma a CHAT-naplóban
+HMCONTS:
+        PUSH BC
+        PUSH DE
+        PUSH HL
+        LD B,0
+        LD HL,CHATM0
+HC_L:   LD DE,(CHATW)
+        LD A,D
+        CP H
+        JR C,HC_E
+        JR NZ,HC_N
+        LD A,E
+        CP L
+        JR C,HC_E
+        JR Z,HC_E
+HC_N:   INC B
+        PUSH BC
+        CALL HMSKIP
+        POP BC
+        JR HC_L
+HC_E:   LD A,B
+        POP HL
+        POP DE
+        POP BC
+        RET
+
+; HMSKIP: HL -> a következő rekord eleje (két 0-zárt szöveg)
+HMSKIP:
+        PUSH BC
+        LD B,0
+HMS1:   LD A,(HL)
+        INC HL
+        OR A
+        JR NZ,HMS1
+        LD B,0
+HMS2:   LD A,(HL)
+        INC HL
+        OR A
+        JR NZ,HMS2
+        POP BC
+        RET
+
+; HMSGI: A = 0-tól indexelt üzenet -> HL = rekordcíme (vagy 0)
+HMSGI:
+        PUSH BC
+        PUSH DE
+        LD C,A
+        LD HL,CHATM0
+HG_L:   LD DE,(CHATW)
+        LD A,D
+        CP H
+        JR C,HG_0
+        JR NZ,HG_N
+        LD A,E
+        CP L
+        JR C,HG_0
+        JR Z,HG_0
+HG_N:   XOR A
+        CP C
+        JR Z,HG_F
+        PUSH BC
+        CALL HMSKIP
+        POP BC
+        DEC C
+        JR HG_L
+HG_0:   XOR A
+        LD H,A
+        LD L,A
+HG_F:   POP DE
+        POP BC
+        RET
+
+; HSHOWI: A = üzenet-index -> képernyőre (fejléc inverzen, szöveg normál)
+HSHOWI:
+        CALL HMSGI
+        LD A,H
+        OR L
+        RET Z
+        PUSH HL
+        CALL CLRSCR
+        POP HL
+        PUSH HL
+        CALL PRTINV
+        CALL NEWLINE
+        POP HL
+        PUSH BC
+        LD B,0
+HS_S:   LD A,(HL)
+        INC HL
+        OR A
+        JR NZ,HS_S
+        POP BC
+        CALL PRTLN
+        CALL NEWLINE
+        RET
+
 ; ================= ADATOK =================
 DEFNAME:    db "GUEST",0
 TXTSPLASH:  db "P I O C O  A I",0
@@ -1661,6 +2220,8 @@ TXTTEMPSET: db "[temp ",0
 TXTREASON0: db "[reasoning off]",0
 TXTREASON1: db "[reasoning on]",0
 TXTSAVED:   db "[memory saved]",0
+TXTYOU:     db "YOU",0
+TXTPCO:     db "PIOCO",0
 
 ; ---- EMLEKEZET tablak es szovegek ----
 ; FACTTAB: [kulcsszo][0][bitkod] ismetles, lezaras 0
