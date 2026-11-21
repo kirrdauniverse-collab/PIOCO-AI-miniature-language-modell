@@ -16,7 +16,7 @@ import sys
 MAGIC = b"PI"
 TIPUSOK = {"BOOT": 1, "MOTOR": 2, "SZOTAR": 3, "ALAPMAG": 4, "CSOMAG": 5, "EMLEKEZET": 6}
 CELOK = {"BOOT": 0x4600, "MOTOR": 0x4600, "SZOTAR": 0x5600, "ALAPMAG": 0x6C00,
-         "CSOMAG": 0x7800, "EMLEKEZET": 0x6000}
+         "CSOMAG": 0x7800, "EMLEKEZET": 0x6700}
 PROFIL_ZONA = (0x4100, 0x41FF)
 RAM_MAX = 0x7FFF
 
@@ -53,7 +53,7 @@ def read(path):
         return f.read()
 
 
-def build(out_path, motor, szotar, alapmag, csomag=None, csomagnev=b""):
+def build(out_path, motor, szotar, alapmag, csomag=None, csomagnev=b"", eml=None):
     parts = []
     boot = (b"PIOCO AI BOOT\x00"
             b"BETOLTES: MOTOR+SZOTAR+ALAPMAG\x00"
@@ -65,6 +65,8 @@ def build(out_path, motor, szotar, alapmag, csomag=None, csomagnev=b""):
     if csomag:
         head = csomagnev[:16].ljust(16, b"\x00")
         parts.append(block("CSOMAG", head + csomag))
+    if eml:
+        parts.append(block("EMLEKEZET", eml))
     kazo = bytearray()
     for i, p in enumerate(parts, start=1):
         kazo.extend(bytes([0x02, 0x80, i]))   # pilóta-jeles sorszám
@@ -81,4 +83,5 @@ if __name__ == "__main__":
     out = sys.argv[4]
     csomag = read(sys.argv[5]) if len(sys.argv) > 5 else None
     cnev = sys.argv[6].encode() if len(sys.argv) > 6 else b""
-    build(out, motor, szotar, alapmag, csomag, cnev)
+    eml = read(sys.argv[7]) if len(sys.argv) > 7 else None
+    build(out, motor, szotar, alapmag, csomag, cnev, eml)

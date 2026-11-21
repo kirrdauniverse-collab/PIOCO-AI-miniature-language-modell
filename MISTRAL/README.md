@@ -13,7 +13,7 @@ MISTRAL/
 ├── fazis-1-otlet-es-koncepcio/            koncepció, memória/0x76, agent-viselkedés, fázisterv
 ├── fazis-2-tervezes-es-dizajn/            memóriatérkép, .T81 formátum, bitmezők, képernyők, chat
 └── fazis-3-kodolas-es-csomagolas/         motor (Z80), eszközök, PIOCO.T81, tesztek
-└── fazis-4-tudas-trening-teszt/           nyelvváltás, trening, emulátorteszt-terv, csomagok
+└── fazis-4-tudas-trening-teszt/           nyelvváltás, trening, emulátorteszt-terv, csomagok, emlékezet
 ```
 
 ## Célplatform

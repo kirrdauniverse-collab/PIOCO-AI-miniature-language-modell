@@ -130,6 +130,34 @@ def vizsgal_bigramm(path, szotar_path):
     print(f"[BIGRAMM] tábla: {len(bg)} bájt, {elemek} > 4 bites súlyú átmenet")
 
 
+def vizsgal_eml(path):
+    adat = open(path, "rb").read()
+    if len(adat) < 2:
+        hibak.append("eml fájl túl rövid")
+        return
+    if adat[0] != 0xC3:
+        hibak.append(f"eml mágnes hibás: {adat[0]:#04x} != 0xC3")
+        return
+    count = adat[1]
+    if count > 63:
+        hibak.append(f"eml rekordszám > 63: {count}")
+        return
+    if len(adat) != 2 + 4 * count:
+        hibak.append(f"eml hossz nem stimmel: {len(adat)} != {2 + 4 * count}")
+        return
+    for i in range(count):
+        b0, b1, nap, hon = adat[2 + 4 * i:6 + 4 * i]
+        if b0 > 31:
+            hibak.append(f"eml rekord {i}: bitkód > 31 ({b0})")
+        if b1 not in (0x00, 0x01, 0x80):
+            hibak.append(f"eml rekord {i}: értékbájt érvénytelen ({b1:#04x})")
+        if not (1 <= nap <= 31):
+            hibak.append(f"eml rekord {i}: nap {nap}")
+        if not (1 <= hon <= 12):
+            hibak.append(f"eml rekord {i}: hónap {hon}")
+    print(f"[EML] zóna: {count} rekord, {len(adat)} bájt")
+
+
 if __name__ == "__main__":
     vizsgal_motor(sys.argv[1])
     vizsgal_szotar(sys.argv[2])
@@ -137,6 +165,9 @@ if __name__ == "__main__":
     bigr = sys.argv[4] if len(sys.argv) > 4 else None
     if bigr:
         vizsgal_bigramm(bigr, sys.argv[2])
+    eml = sys.argv[5] if len(sys.argv) > 5 else None
+    if eml:
+        vizsgal_eml(eml)
     if hibak:
         print("\nHIBÁK:")
         for h in hibak:

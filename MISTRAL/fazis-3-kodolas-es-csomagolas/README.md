@@ -28,10 +28,12 @@ for p in science health retro astronomy cooking entertainment future learning ho
   python3 eszkozok/kb_compile.py tudas/$p.txt kazetta/$p.bin
 done
 cat kazetta/szotar.bin kazetta/bg.bin > kazetta/szotar_full.bin
+python3 eszkozok/eml_make.py kazetta/eml.bin 0:1:12:5 1:1:2:6
 python3 eszkozok/t81_build.py kazetta/motor.bin kazetta/szotar_full.bin \
-        kazetta/science.bin kazetta/PIOCO.T81 kazetta/science.bin SCIENCE
+        kazetta/science.bin kazetta/PIOCO.T81 kazetta/science.bin SCIENCE \
+        kazetta/eml.bin
 python3 tesztek/ellenorzes.py kazetta/motor.bin kazetta/szotar_full.bin \
-        kazetta/PIOCO.T81 kazetta/bg.bin
+        kazetta/PIOCO.T81 kazetta/bg.bin kazetta/eml.bin
 ```
 
 ## Mit tud már a motor (v2)?

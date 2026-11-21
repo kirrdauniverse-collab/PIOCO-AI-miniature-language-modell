@@ -1,8 +1,8 @@
 # 4. fázis — Tudás, tréning, tesztelés (MISTRAL munkaterület)
 
-**Állapot:** futóvá tett vezérlés + generátor. A `PIOCO.T81` **4144 B,
-5 blokk**, nyolcféle automatikus vizsgálat zöld (most már a bigrammforma
-is).
+**Állapot:** futóvá tett vezérlés, generátor **és emlékezet**. A
+`PIOCO.T81` **5079 B, 6 blokk**, kilencféle automatikus vizsgálat zöld
+(szótárforma, bigrammforma + emlékforma is).
 
 ## Mappa
 
@@ -10,8 +10,22 @@ is).
 - `02-trening-utmutato.md` — kód nélküli tréning: `tudas/x.txt` → `kb_compile.py`
 - `03-emulatoros-teszt-terv.md` — az A–F emulátoros ellenőrzőlista
 - `04-kesz-csomagok.md` — csomag-állapotok + a tervezett témák
-- `05-vezervek-es-nagygenerator.md` — **új**: bekötött SHIFT-vezérlők,
+- `05-vezervek-es-nagygenerator.md` — bekötött SHIFT-vezérlők,
   teljes billentyűzet ENTER-rel, bigramm-generátor 4 bites súlyokkal
+- `06-emlekezet-es-mentes.md` — **új**: 4 bájtos emlékrekordok a 0x6700-on,
+  dátum-bekérés, fakt-felismerés, 14 napos elavulás, SHIFT+S
+
+## Mit hozott a harmadik lépés?
+
+- EMLÉKEZET zóna (06 blokk, cél = **0x6700**, 254 B / 63 rekord)
+- boot-flow: EMINIT → dátum-bekérés, ha még nincs („enter date as dd mm:")
+  → OBSSCAN (14 napnál régebbi rekordok elavulttá tétele)
+  → REMCHK (aktív fejfájás/rosszullét-faktra rákérdezés)
+- FACTSET: HEAD/SICK/HAPPY-faktok felismerése, NO/NOT tagadás kezelése,
+  FLAG-B bitképzés 0x76-biztos határokkal
+- SHIFT+S: PROFIL dátumbélyeg („[memory saved]"); a kazettára írás
+  az emulátoros fázisra marad, PC-oldalon a 06-kör már teljes
+- az `eml_make.py` és az `ellenorzes.py` eml-ellenőrzése
 
 ## Mit hozott a második lépés?
 
@@ -35,10 +49,12 @@ for p in science health retro astronomy cooking entertainment future learning \
   python3 eszkozok/kb_compile.py tudas/$p.txt kazetta/$p.bin
 done
 cat kazetta/szotar.bin kazetta/bg.bin > kazetta/szotar_full.bin
+python3 eszkozok/eml_make.py kazetta/eml.bin 0:1:12:5 1:1:2:6
 python3 eszkozok/t81_build.py kazetta/motor.bin kazetta/szotar_full.bin \
-        kazetta/science.bin kazetta/PIOCO.T81 kazetta/science.bin SCIENCE
+        kazetta/science.bin kazetta/PIOCO.T81 kazetta/science.bin SCIENCE \
+        kazetta/eml.bin
 python3 tesztek/ellenorzes.py kazetta/motor.bin kazetta/szotar_full.bin \
-        kazetta/PIOCO.T81 kazetta/bg.bin
+        kazetta/PIOCO.T81 kazetta/bg.bin kazetta/eml.bin
 ```
 
 A kazettán a B4-ALAPMAG a tudás (most science), a B5-CSOMAG a cserélhető

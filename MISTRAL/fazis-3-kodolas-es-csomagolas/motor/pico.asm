@@ -15,6 +15,10 @@
 ;
 ; NYELVI DÖNTÉS: a prototípus ANGOL nyelven fut (kevesebb bájt,
 ; ASCII-only); a magyar nyelvi finomítás a kiforrott modell után.
+;
+; v2.1 új: EMLÉKEZET (06 blokk, 0x6700) — 4 bájtos emlékrekordok,
+; dátum-bekérés induláskor, fakt-felismerés, 14 napos elavulás,
+; SHIFT+S mentés (PROFIL dátumbélyeg + későbbi kazetta-írás).
 ; ============================================================
 
 ; ---- Zónák (fázis-2 memóriatérkép) ----
@@ -34,6 +38,19 @@ VEREMTOP    EQU 0x7FFF
 PROF_NAME   EQU PROFIL+0x08
 PROF_FLAGB  EQU PROFIL+0x1C
 PROF_TEMP   EQU PROFIL+0x1D
+; EMLÉKEZET dátumbélyegek a PROFILban (védve a betöltésektől)
+PROF_FBDAY  EQU PROFIL+0x20      ; FLAG-B utolsó állításának napja
+PROF_FBMON  EQU PROFIL+0x21      ; FLAG-B utolsó állításának hónapja
+PROF_SVDAY  EQU PROFIL+0x22      ; utolsó MENTÉS napja
+PROF_SVMON  EQU PROFIL+0x23      ; utolsó MENTÉS hónapja
+PROF_DDAY   EQU PROFIL+0x24      ; aktuális dátum: nap (betöltéskor kérve)
+PROF_DMON   EQU PROFIL+0x25      ; aktuális dátum: hónap
+
+; ---- EMLÉKEZET zóna (CHAT vége előtt, 06 blokk célcíme) ----
+EMSTORE     EQU 0x6700
+EMMCNT      EQU EMSTORE+1        ; rekordszám (max 63)
+EMREC0      EQU EMSTORE+2        ; első 4 bájtos rekord
+; rekord: [bitkód 0..31][érték 0/1 + bit7 elavulás][nap][hónap]
 
 ; ---- Munkaterület puffer-alap ----
 PB          EQU MUNKAT
@@ -60,6 +77,11 @@ WSUM        EQU PB+0xDB       ; CNTSUM: összsúly
 DAPPID      EQU PB+0xDC       ; DICTAPP: keresett token-ID
 PAR         EQU PB+0xDD       ; bigramm-párolvasás párossága (0/1)
 ABRT        EQU PB+0xDE       ; megszakítás-jelző (SHIFT+SPACE)
+DAYNOW      EQU PB+0xDF       ; aktuális nap (1..31)
+MONNOW      EQU PB+0xE0       ; aktuális hónap (1..12)
+EMLBIT      EQU PB+0xE1       ; FACTSET/EMSET: aktuális bitkód (0xFF = nincs)
+EMLVAL      EQU PB+0xE2       ; EMSET: érték (0/1)
+DOYNOW      EQU PB+0xE3       ; DOY30: nap-index az év elejétől
 
         ORG MOTORBASE
 
@@ -93,6 +115,7 @@ START:
         LD (PROF_TEMP),A
 PROFOK:
         CALL BIGRBASE           ; bigramm-tábla címének kiszámítása
+        CALL EMINIT             ; emlékezetzóna mágnes-ellenőrzés + dátumvétel
         CALL CLRSCR
         LD HL,TXTSPLASH
         CALL PRTLN
@@ -105,6 +128,9 @@ PROFOK:
         CALL CLRSCR
         LD HL,TXTHELLO
         CALL PRTLN
+        CALL DATASK             ; dátum-bekérés, ha még nincs
+        CALL OBSSCAN            ; >14 napos emlékek elavulttá tétele
+        CALL REMCHK             ; releváns emlékre rákérdezés
 
 ; ================= FŐCIKLUS =================
 MAINLOP:
@@ -120,6 +146,7 @@ MAINLOP:
 NOSHOW:
         CALL TOKENIZE
         CALL REASON
+        CALL FACTSET            ; fakt-kulcsszó keresés -> EMLEMLET-intent
         CALL GENERATE
         JR MAINLOP
 
@@ -410,6 +437,7 @@ SC_TG2:
         POP HL
         RET
 SC_SAVE:
+        CALL SAVEMEM            ; dátumbélyeg + később kazetta-írás
         LD HL,TXTSAVED
         CALL PRTLN
         CALL NEWLINE
@@ -643,9 +671,21 @@ KQ_NO:
 ; ================= GENERÁLÁS =================
 GENERATE:
         LD A,(INTENT)
+        CP 5
+        JR Z,GEN_FACT
         CP 2
         JR Z,GEN_KB
         CALL BGWRITE
+        RET
+GEN_FACT:
+        CALL EMSET              ; fakt rögzítése az emlékezetzónába
+        OR A
+        JR Z,GEN_PL
+        LD HL,TXTNOTED          ; talált fakt: rögzítve-jelzés
+        CALL PRTLN
+        CALL NEWLINE
+        RET
+GEN_PL: CALL BGWRITE
         RET
 GEN_KB:
         LD HL,KB_BASE           ; betöltött tudáslánc (ALAPMAG)
@@ -1098,6 +1138,517 @@ RND:
         POP DE
         RET
 
+; ================= EMLEKEZET (06 blokk) =================
+; EMINIT: az emlekezzonat gyakornokosztja a magansaval; ha a PROFILban
+; mar van datum, atveszi DAYNOW/MONNOW-ba, kulonben az ertekek 0-k.
+EMINIT:
+        LD HL,EMSTORE
+        LD A,(HL)
+        CP 0xC3
+        JR Z,EMI_D
+        LD A,0xC3
+        LD (HL),A
+        INC HL
+        XOR A
+        LD (HL),A
+EMI_D:  LD HL,PROF_DDAY
+        LD A,(HL)
+        OR A
+        RET Z
+        LD HL,PROF_DMON
+        LD A,(HL)
+        LD (MONNOW),A
+        LD HL,PROF_DDAY
+        LD A,(HL)
+        LD (DAYNOW),A
+        RET
+
+; DATASK: ha nincs datum (nap = 0), addig ker be "dd mm" alakban,
+; amig ervenyes nem lesz; else maradt: semmi.
+DATASK:
+        LD HL,PROF_DDAY
+        LD A,(HL)
+        OR A
+        RET NZ
+DS_L:   LD HL,TXTDATEQ
+        CALL PRTLN
+        CALL READLINE
+        CALL PARSEDATE
+        OR A
+        JR Z,DS_L
+        RET
+
+; PARSEDATE: a BLINE "dd mm" mintajat vizsgalja; sikernel A = 1
+; es tarol (DAYNOW/MONNOW + PROFIL), sikertelennel A = 0.
+PARSEDATE:
+        LD HL,BLINE
+        CALL SKNPC
+        LD A,(HL)
+        OR A
+        JR Z,PD_N
+        CALL RDNUM
+        OR A
+        JR Z,PD_N
+        LD A,E
+        CP 1
+        JR C,PD_N
+        CP 32
+        JR NC,PD_N
+        LD A,E
+        LD (DAYNOW),A
+        CALL SKNPC
+        LD A,(HL)
+        OR A
+        JR Z,PD_N
+        CALL RDNUM
+        OR A
+        JR Z,PD_N
+        LD A,E
+        CP 1
+        JR C,PD_N
+        CP 13
+        JR NC,PD_N
+        LD A,E
+        LD (MONNOW),A
+        LD HL,PROF_DDAY
+        LD A,(DAYNOW)
+        LD (HL),A
+        LD HL,PROF_DMON
+        LD A,(MONNOW)
+        LD (HL),A
+        LD A,1
+        RET
+PD_N:   XOR A
+        RET
+
+; SKNPC: HL-ben erkezo poziciotol ugras a kovetkezo szamjegyig
+; (vagy sorvegeig); HL fejlettebb ponttal ter vissza
+SKNPC:
+        LD A,(HL)
+        OR A
+        RET Z
+        CP 0x30
+        JR NC,SK_OK
+        INC HL
+        JR SKNPC
+SK_OK:  CP 0x3A
+        RET C
+        INC HL
+        JR SKNPC
+
+; RDNUM: HL-tol at most 2 szamjegy; sikernel A = 1 (ertek E-ben,
+; HL a szamok utanra all), sikertelennel A = 0
+RDNUM:  XOR A
+        LD E,A
+        LD A,(HL)
+        CP 0x30
+        JR C,RD_N
+        CP 0x3A
+        JR NC,RD_N
+        SUB 0x30
+        LD E,A
+        INC HL
+        LD A,(HL)
+        CP 0x30
+        JR C,RD2_L
+        CP 0x3A
+        JR NC,RD2_L
+        SUB 0x30
+        LD B,A
+        LD A,E
+        ADD A,A
+        LD D,A
+        ADD A,A
+        ADD A,A
+        ADD A,D
+        ADD A,B
+        LD E,A
+        INC HL
+RD2_L:   LD A,1
+        RET
+RD_N:   XOR A
+        RET
+
+; OBSSCAN: indulaskor a 14 napnal regi emlekrekordok ertekbitjenek
+; torlese (b1 = 0x80: ertek 0, elavulas-jel). Honap-kulonbseggel
+; szamol, 16 bites matek nelkul; a honapokat egysegesen 30 nappal
+; kozeliti (dokumentalt egyszerusites).
+OBSSCAN:
+        LD HL,PROF_DDAY
+        LD A,(HL)
+        OR A
+        RET Z
+        LD A,(EMMCNT)
+        OR A
+        RET Z
+        LD B,A
+        LD HL,EMREC0
+OS_L:   PUSH BC
+        LD A,(HL)
+        INC HL
+        INC HL
+        LD C,(HL)               ; C = rekord napja
+        INC HL
+        LD D,(HL)               ; D = rekord honapja
+        PUSH HL
+        LD HL,PROF_DMON
+        LD E,(HL)               ; E = aktualis honap
+        LD HL,PROF_DDAY
+        LD A,(HL)               ; A = aktualis nap
+        LD H,D
+        LD D,A                  ; D = aktualis nap, H = rekord honapja
+        LD A,E
+        CP H
+        JR Z,OS_SAME
+        JR C,OS_OBS             ; rekord jovobeli datum -> elavult
+        SUB H
+        CP 2
+        JR NC,OS_OBS
+        LD A,D
+        SUB C
+        JR NC,OS_A30
+        XOR A
+OS_A30: ADD A,30
+        JR OS_CHK
+OS_SAME:
+        LD A,D
+        SUB C
+        JR NC,OS_CHK
+        XOR A
+OS_CHK: CP 15
+        JR C,OS_OK
+OS_OBS: POP HL
+        DEC HL
+        DEC HL
+        LD A,0x80
+        LD (HL),A
+        JR OS_NX
+OS_OK:  POP HL
+OS_NX:  INC HL
+        POP BC
+        DJNZ OS_L
+        RET
+
+; EMFIND: A = bitkod -> HL = a kereseett rekord b0-cime, vagy HL = 0
+EMFIND:
+        PUSH BC
+        PUSH DE
+        LD E,A
+        LD A,(EMMCNT)
+        OR A
+        JR Z,EF_N
+        LD B,A
+        LD HL,EMREC0
+EF_L:   LD A,(HL)
+        CP E
+        JR Z,EF_F
+        INC HL
+        INC HL
+        INC HL
+        INC HL
+        DJNZ EF_L
+EF_N:   XOR A
+        LD H,A
+        LD L,A
+EF_F:   POP DE
+        POP BC
+        RET
+
+; EMSET: az EMLBIT/EMLVAL paros tarolasa az emlekezetzonaban.
+; Ha mar van rekord ugyanazzal a bitkoddal, frissit; kulonben ujat
+; fuz hozza (max 63 db). A = 1 sikeres tarolas, 0 = hiba/nincs fakt.
+EMSET:
+        LD A,(EMLBIT)
+        CP 0xFF
+        JR Z,ES_0
+        CALL EMFIND
+        LD A,H
+        OR L
+        JR NZ,ES_UPD
+        LD A,(EMMCNT)
+        CP 63
+        JR NC,ES_0
+        LD L,A
+        LD H,0
+        ADD HL,HL
+        ADD HL,HL
+        LD DE,EMREC0
+        ADD HL,DE
+        LD A,(EMMCNT)
+        INC A
+        LD (EMMCNT),A
+ES_UPD:
+        LD A,(EMLBIT)
+        LD (HL),A
+        INC HL
+        LD A,(EMLVAL)
+        AND 1
+        LD (HL),A
+        INC HL
+        LD HL,DAYNOW
+        LD A,(HL)
+        EX DE,HL
+        LD (HL),A
+        EX DE,HL
+        INC HL
+        LD HL,MONNOW
+        LD A,(HL)
+        EX DE,HL
+        LD (HL),A
+        EX DE,HL
+        CALL MASKOF
+        LD A,1
+        RET
+ES_0:   XOR A
+        RET
+
+; MASKOF: az EMLBIT szerinti bit be-/kikapcsolasa PROF_FLAGB-ban az
+; EMLVAL ertek szerint; az 5-7-es bitek fixen 0-k (0x76-vedelem)
+MASKOF:
+        LD A,(EMLBIT)
+        AND 7
+        CP 5
+        RET NC
+        LD B,A
+        LD A,1
+        JR Z,MK_D
+MK_L:   ADD A,A
+        DJNZ MK_L
+MK_D:   LD B,A
+        LD A,(EMLVAL)
+        OR A
+        JR Z,MK_C
+        LD HL,PROF_FLAGB
+        LD A,(HL)
+        OR B
+        LD (HL),A
+        RET
+MK_C:   LD A,B
+        CPL
+        LD B,A
+        LD HL,PROF_FLAGB
+        LD A,(HL)
+        AND B
+        LD (HL),A
+        RET
+
+; REMCHK: emlek-raKERDEZO ketto fakt: fejfajas (0) es rosszullszerint (1)
+REMCHK:
+        XOR A
+        LD DE,ASKH
+        CALL REMONE
+        LD A,1
+        LD DE,ASKS
+        JR REMONE
+
+; REMONE: A = bitkod, DE = kerdessor. Ha aktiv (ertek = 1) a rekord,
+; raKERDEZ; ha a valaszban szerepel CLRTAB-szo, 0-ra allitja.
+REMONE:
+        PUSH BC
+        PUSH DE
+        PUSH HL
+        LD (EMLBIT),A
+        CALL EMFIND
+        LD A,H
+        OR L
+        JR Z,RM_E
+        INC HL
+        LD A,(HL)
+        DEC HL
+        CP 1
+        JR NZ,RM_E
+        EX DE,HL
+        CALL PRTLN
+        CALL NEWLINE
+        CALL READLINE
+        LD HL,BLINE
+        LD DE,CLRTAB
+RM_L:   LD A,(DE)
+        OR A
+        JR Z,RM_E
+        PUSH DE
+        PUSH HL
+        CALL KWGET
+        POP HL
+        POP DE
+        OR A
+        JR NZ,RM_Y
+        PUSH BC
+        LD B,0
+RM_S:   LD A,(DE)
+        INC DE
+        OR A
+        JR NZ,RM_S
+        POP BC
+        JR RM_L
+RM_Y:   XOR A
+        LD (EMLVAL),A
+        CALL EMSET
+RM_E:   POP HL
+        POP DE
+        POP BC
+        RET
+
+; FACTSET: fakt-kulcsszavak keresese a sorban; talalatnal INTENT = 5
+; es EMLBIT/EMLVAL beallitasa (NEGTAB-szo: ertek 0)
+FACTSET:
+        LD A,0xFF
+        LD (EMLBIT),A
+        XOR A
+        LD (EMLVAL),A
+        LD HL,FACTTAB
+FS_L:   LD A,(HL)
+        OR A
+        JR Z,FS_0
+        PUSH HL
+        EX DE,HL
+        LD HL,BLINE
+        CALL KWGET
+        POP HL
+        OR A
+        JR Z,FS_NX
+        PUSH BC
+        LD B,0
+FS_S:   LD A,(HL)
+        INC HL
+        OR A
+        JR NZ,FS_S
+        LD A,(HL)
+        LD (EMLBIT),A
+        POP BC
+        LD A,1
+        LD (EMLVAL),A
+        LD HL,BLINE
+        LD DE,NEGTAB
+FS_NL:  LD A,(DE)
+        OR A
+        JR Z,FS_E2
+        PUSH DE
+        PUSH HL
+        CALL KWGET
+        POP HL
+        POP DE
+        OR A
+        JR Z,FS_NN
+        XOR A
+        LD (EMLVAL),A
+        JR FS_E2
+FS_NN:  PUSH BC
+        LD B,0
+FS_S2:  LD A,(DE)
+        INC DE
+        OR A
+        JR NZ,FS_S2
+        POP BC
+        JR FS_NL
+FS_E2:  LD A,5
+        LD (INTENT),A
+        RET
+FS_NX:  PUSH BC
+        LD B,0
+FS_S3:  LD A,(HL)
+        INC HL
+        OR A
+        JR NZ,FS_S3
+        INC HL
+        INC HL
+        POP BC
+        JR FS_L
+FS_0:   XOR A
+        RET
+
+; KWGET: DE = kulcsszo, HL = sor; A = 1, ha a sorban van keresett szo;
+; BC/DE/HL megmaradnak
+KWGET:
+        PUSH BC
+        PUSH DE
+        PUSH HL
+KG_W:   LD A,(HL)
+        OR A
+        JR Z,KG_N
+        PUSH DE
+        PUSH HL
+        CALL KWDE2
+        POP HL
+        POP DE
+        OR A
+        JR NZ,KG_Y
+KG_S:   LD A,(HL)
+        OR A
+        JR Z,KG_N
+        CP 0x20
+        JR Z,KG_E
+        INC HL
+        JR KG_S
+KG_E:   INC HL
+        JR KG_W
+KG_Y:   POP HL
+        POP DE
+        POP BC
+        LD A,1
+        RET
+KG_N:   POP HL
+        POP DE
+        POP BC
+        XOR A
+        RET
+
+; KWDE2: DE = kulcsszo, HL = szo eleje; A = 1, ha teljes egyezes
+; (szovegvege = szokoz vagy 0); kis-/nagybetu-kevertten is mukodik
+KWDE2:
+        PUSH BC
+        LD A,(DE)
+        OR A
+        JR Z,KD_E
+        AND 0xDF
+        LD B,A
+        LD A,(HL)
+        AND 0xDF
+        CP B
+        JR NZ,KD_N
+        INC DE
+        INC HL
+        POP BC
+        JR KWDE2
+KD_E:   LD A,(HL)
+        OR A
+        JR Z,KD_Y
+        CP 0x20
+        JR Z,KD_Y
+KD_N:   POP BC
+        XOR A
+        RET
+KD_Y:   POP BC
+        LD A,1
+        RET
+
+; SAVEMEM: MENTES dátumbélyege a PROFILban (a kazettaira iras kesobb)
+SAVEMEM:
+        LD HL,PROF_DDAY
+        LD A,(HL)
+        LD HL,PROF_SVDAY
+        LD (HL),A
+        LD HL,PROF_DMON
+        LD A,(HL)
+        LD HL,PROF_SVMON
+        LD (HL),A
+        RET
+
+; DOY30: A = honap, C = nap -> nap-index az ev elejetol (30-dal szamol,
+; elemi korlatlan kozelites, eleg az elavulasiteshoz)
+DOY30:  PUSH BC
+        DEC A
+        JR Z,DY_E
+        LD B,A
+        XOR A
+DY_L:   LD E,A
+        LD A,30
+        ADD A,E
+        DJNZ DY_L
+DY_E:   ADD A,C
+        POP BC
+        RET
+
 ; ================= ADATOK =================
 DEFNAME:    db "GUEST",0
 TXTSPLASH:  db "P I O C O  A I",0
@@ -1109,7 +1660,34 @@ TXTNAM:     db "",0
 TXTTEMPSET: db "[temp ",0
 TXTREASON0: db "[reasoning off]",0
 TXTREASON1: db "[reasoning on]",0
-TXTSAVED:   db "[save stub: later]",0
+TXTSAVED:   db "[memory saved]",0
+
+; ---- EMLEKEZET tablak es szovegek ----
+; FACTTAB: [kulcsszo][0][bitkod] ismetles, lezaras 0
+FACTTAB:    db "HEAD",0,0
+            db "HURT",0,0
+            db "ACHE",0,0
+            db "SICK",0,1
+            db "ILL",0,1
+            db "FEVER",0,1
+            db "HAPPY",0,2
+            db "GLAD",0,2
+            db 0
+; NEGTAB: tagnalo szok, ezek eseten az ertek = 0
+NEGTAB:     db "NO",0
+            db "NOT",0
+            db 0
+; CLRTAB: a raKerdZesre a megszunest jelzo szavak
+CLRTAB:     db "GONE",0
+            db "BETTER",0
+            db "YES",0
+            db "GOOD",0
+            db "OK",0
+            db 0
+TXTNOTED:   db "[noted]",0
+TXTDATEQ:   db "enter date as dd mm:",0
+ASKH:       db "i remember head pain. better?",0
+ASKS:       db "i remember unwell. better?",0
 TXTABORT:   db "[abort]",0
 
 ; véletlen válaszindítók (mind szótári szó)
