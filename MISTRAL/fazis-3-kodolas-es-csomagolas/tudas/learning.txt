@@ -1,0 +1,8 @@
+LEARNING theme package (CSOMAGTERULET format; max 1536 bytes)
+<keyword><TAB><fact text>
+learning	Learning means repeating until it sticks.
+practice	Short daily practice beats one long session.
+mistake	A mistake is a map of what to study next.
+reading	Reading feeds the brain with other people's ideas.
+question	A good question is half the answer.
+study	Sleep after study helps to store it.

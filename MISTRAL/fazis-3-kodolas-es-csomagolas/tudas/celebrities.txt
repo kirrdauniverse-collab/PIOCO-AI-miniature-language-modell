@@ -1,0 +1,8 @@
+CELEBRITIES theme package (CSOMAGTERULET format; max 1536 bytes)
+<keyword><TAB><fact text>
+famous	Fame is attention from people who never met you.
+ singer	A singer shapes melody with breath.
+actor	An actor makes a written person feel real.
+inventor	An inventor turns a wish into a machine.
+pioneer	A pioneer walks first and reports the road.
+sinclair	Clive Sinclair made small computers for many homes.

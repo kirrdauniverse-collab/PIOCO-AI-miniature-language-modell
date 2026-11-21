@@ -88,10 +88,55 @@ def vizsgal_t81(path):
     return n_blokk
 
 
+def vizsgal_bigramm(path, szotar_path):
+    """bg.bin invariánsok: fejléc, eltolások, párok és 4 bites súlyok."""
+    bg = open(path, "rb").read()
+    szotar = open(szotar_path, "rb").read()
+    ntok = szotar[0]
+    if bg[0] != ntok:
+        hibak.append(f"bigramm fejléc eltér: {bg[0]} vs {ntok}")
+    elemek = 0
+    for t in range(1, ntok + 1):
+        o = bg[1 + 2*(t-1)] | bg[2 + 2*(t-1)] << 8
+        if o == 0:
+            continue
+        if o >= len(bg):
+            hibak.append(f"bigramm eltolás túlcsúszik: token {t}")
+            continue
+        pos, par = o, 0
+        while True:
+            t1 = bg[pos]
+            if t1 == 0:
+                break
+            if not (1 <= t1 <= ntok):
+                hibak.append(f"érvénytelen átmenet-token {t1} ({t})")
+                break
+            if par == 0:
+                if not (1 <= bg[pos+2] >> 4 <= 15):
+                    hibak.append(f"érvénytelen súly ({t} @ {pos})")
+                    break
+                elemek += 1
+                if bg[pos+1] == 0:
+                    break
+                pos += 1
+                par = 1
+            else:
+                if not (1 <= bg[pos+1] & 0x0F <= 15):
+                    hibak.append(f"érvénytelen súly ({t} @ {pos})")
+                    break
+                elemek += 1
+                pos += 2
+                par = 0
+    print(f"[BIGRAMM] tábla: {len(bg)} bájt, {elemek} > 4 bites súlyú átmenet")
+
+
 if __name__ == "__main__":
     vizsgal_motor(sys.argv[1])
     vizsgal_szotar(sys.argv[2])
     vizsgal_t81(sys.argv[3])
+    bigr = sys.argv[4] if len(sys.argv) > 4 else None
+    if bigr:
+        vizsgal_bigramm(bigr, sys.argv[2])
     if hibak:
         print("\nHIBÁK:")
         for h in hibak:

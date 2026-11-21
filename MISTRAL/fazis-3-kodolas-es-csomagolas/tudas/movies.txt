@@ -1,0 +1,8 @@
+MOVIES theme package (CSOMAGTERULET format; max 1536 bytes)
+<keyword><TAB><fact text>
+movie	A movie is a story shown in moving pictures.
+film	Silent film told stories without words.
+director	The director guides the whole picture.
+cinema	The cinema made movies a shared event.
+scene	Each scene has a task and a change.
+screen	The frame is a small window on a large story.

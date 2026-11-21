@@ -26,7 +26,7 @@ def train(corpus_path, out_path, max_tokens=254):
     for line in open(corpus_path, encoding="utf-8"):
         for w in line.split():
             w = normal(w)
-            if len(w) >= 3 and w.isalnum():
+            if len(w) >= 2 and w.isalnum():
                 words[w] += 1
     vocab = [w for w, _ in words.most_common(max_tokens)]
     blob = bytearray()

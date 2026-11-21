@@ -24,9 +24,10 @@ MISTRAL/
 
 ## Nyelvi döntés
 
-A 4. fázistól a prototípus **angol nyelven** fut (tömörebb szótár: 661 B,
-ASCII-only, több szó fér be) — a magyar finomítás a kiforrott modell után,
-motor-átírás nélkül: `fazis-4-tudas-trening-teszt/01-nyelvvaltas-dontes.md`.
+A 4. fázistól a prototípus **angol nyelven** fut (tömörebb szótár:
+111 token / 740 B, ASCII-only, több szó fér be) — a magyar finomítás a
+kiforrott modell után, motor-átírás nélkül:
+`fazis-4-tudas-trening-teszt/01-nyelvvaltas-dontes.md`.
 
 ## Munkamódszer
 

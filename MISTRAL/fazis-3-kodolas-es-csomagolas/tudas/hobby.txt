@@ -1,0 +1,8 @@
+HOBBY theme package (CSOMAGTERULET format; max 1536 bytes)
+<keyword><TAB><fact text>
+hobby	A hobby is work you do for joy alone.
+model	Building models trains patience and planning.
+collect	Collectors keep order in a world of small things.
+garden	Gardening is slow work with living results.
+ chess	Chess is a game of long quiet thinking.
+photo	A photograph stores a piece of light and time.

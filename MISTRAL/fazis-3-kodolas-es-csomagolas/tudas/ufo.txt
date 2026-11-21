@@ -1,0 +1,8 @@
+UFO theme package (CSOMAGTERULET format; max 1536 bytes)
+<keyword><TAB><fact text>
+ufo	Most UFO reports stay unresolved observations.
+sighting	A sighting is often a plane, a balloon or a star.
+legend	Strong legends grow where facts are thin.
+sky	Watch the sky; it rewards patient eyes.
+mystery	A mystery is a question we have not earned yet.
+probe	A probe is our own visitor: we are the aliens.

@@ -1,0 +1,8 @@
+ART theme package (CSOMAGTERULET format; max 1536 bytes)
+<keyword><TAB><fact text>
+art	Art is thought made visible.
+drawing	A drawing starts as a few honest lines.
+paint	Paint puts light and color on quiet surfaces.
+shape	Shape tells the eye where to walk.
+color	Color sets the mood before words do.
+craft	Good craft is art that also works.
