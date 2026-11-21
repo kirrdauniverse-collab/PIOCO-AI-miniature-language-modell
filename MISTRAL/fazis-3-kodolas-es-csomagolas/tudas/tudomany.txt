@@ -1,9 +1,0 @@
-TUDOMANY témacsomag-minta (CSOMAGTERÜLET formátum; max. 1536 bájt)
-<kulcsszó><tab><tényszöveg>
-mozgas	A mozgás első törvénye szerint a test nyugalomban marad, amíg erő hat rá.
-energia	Az energia megmarad: alakot változtat, de nem vész el.
-villam	A villamos áram a töltések rendezett mozgása.
-atom	 Az atom magból (proton, neutron) és elektronhéjból áll.
-gravitacio	A gravitáció minden tömeges testet vonz; a Földön kb. 9,8 m/s2.
-csillag	A csillagok főleg hidrogénből, fúzióval termelnek fényt és hőt.
-fold	A Föld a Naptól számított harmadik bolygó; egy kör kb. 365,25 nap.

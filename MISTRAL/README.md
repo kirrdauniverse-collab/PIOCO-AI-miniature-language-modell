@@ -10,11 +10,10 @@ munkaterületből kerülnek oda a jóváhagyott részek.
 
 ```
 MISTRAL/
-└── fazis-1-otlet-es-koncepcio/
-    ├── 01-koncepcio.md                    koncepció, realitásvizsgálat, architektúra
-    ├── 02-memoria-es-tombszabalyok.md     memóriakorlát-összehangolás, 0x76/bitbiztonság, tömörítés
-    ├── 03-agent-es-viselkedes.md          viselkedési és agent-forgatókönyvek (kiegészítés alapján)
-    └── 04-fazisterv.md                    fázisterv és következő lépések
+├── fazis-1-otlet-es-koncepcio/            koncepció, memória/0x76, agent-viselkedés, fázisterv
+├── fazis-2-tervezes-es-dizajn/            memóriatérkép, .T81 formátum, bitmezők, képernyők, chat
+└── fazis-3-kodolas-es-csomagolas/         motor (Z80), eszközök, PIOCO.T81, tesztek
+└── fazis-4-tudas-trening-teszt/           nyelvváltás, trening, emulátorteszt-terv, csomagok
 ```
 
 ## Célplatform
@@ -22,6 +21,12 @@ MISTRAL/
 - **Elsődleges:** Sinclair ZX81, 16 KB RAM, Z80 @ 3,25 MHz, `.T81` kazetta (multiload)
 - **Távlati portok (most nem építünk rájuk):** Spectrum 48/128, Commodore 16/64/128,
   Amiga 500/1200, TVC 64, Enterprise 128, Primo 32, HT1080Z
+
+## Nyelvi döntés
+
+A 4. fázistól a prototípus **angol nyelven** fut (tömörebb szótár: 661 B,
+ASCII-only, több szó fér be) — a magyar finomítás a kiforrott modell után,
+motor-átírás nélkül: `fazis-4-tudas-trening-teszt/01-nyelvvaltas-dontes.md`.
 
 ## Munkamódszer
 

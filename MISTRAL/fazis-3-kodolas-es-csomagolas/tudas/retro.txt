@@ -1,0 +1,7 @@
+RETRO theme package (CSOMAGTERULET format; max 1536 bytes)
+<keyword><TAB><fact text>
+zx81	The ZX81 launched in 1981 with 1 KB of RAM and a Z80 CPU.
+spectrum	The ZX Spectrum (1982) became a home-computing icon in Britain.
+c64	The Commodore 64 (1982) sold millions and ruled the 8-bit era.
+amiga	The Amiga 500 (1987) brought multitasking graphics to homes.
+tape	Home computers of the era loaded programs from audio cassettes.

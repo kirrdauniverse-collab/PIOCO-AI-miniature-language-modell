@@ -4,6 +4,9 @@
 ; Memóriatérkép: MISTRAL/fazis-2-tervezes-es-dizajn/01-memoria-terkep.md
 ;
 ; v1-megjegyzések (a 4. fázis emulátortesztje véglegesíti):
+; NYELVI DÖNTÉS: a prototípus ANGOL nyelven fut (kevesebb bájt, ASCII-only);
+; a magyar nyelvi finomítás a kiforrott modell utáni fázis.
+;
 ;  - a billentyűzet bitf át/jelentése (port 0xFE, sorkiválasztás)
 ;  - az ASCII -> ZX81 karakterkód-tábla pontos értékei
 ; ============================================================
@@ -557,31 +560,34 @@ PRTRESP:
         RET
 
 ; ================= ADATOK =================
-DEFNAME:    db "VENDÉG",0
+DEFNAME:    db "GUEST",0
 TXTSPLASH:  db "P I O C O  A I",0
-TXTHELLO:   db "Szia! Kérdezz valamit.",0
+TXTHELLO:   db "Hi! Ask me anything.",0
 TXTPROMPT:  db "> ",0
-TXTTHINK:   db "[gondolkodom]",0
-TXTDUNNO:   db "Ebben a témában még tanulok.",0
+TXTTHINK:   db "[thinking]",0
+TXTDUNNO:   db "Still learning about that.",0
 TXTNAM:     db "",0
 
 ; vázlatszövegek (token-alapú generátor a 4. fázisban lép helyette)
-FRAMES0:    db "Erdekes kerdes, gondolkodom rajta.",0
-FRAMES1:    db "Sajat valaszt adok ra most is.",0
+FRAMES0:    db "Interesting question, let me think.",0
+FRAMES1:    db "I have my own answer for that.",0
 RESP:       EQU PB+0xB0             ; 32 bájtos válasz-puffer
 
-; kulcsszó -> intent: [kulcsszó][0][intent]
+; keyword -> intent: [keyword][0][intent]
 INTKWTAB:
-        db "MI",0,2
-        db "EMLEKEZZ",0,5
-        db "RAJZ",0,8
-        db "MENT",0,8
+        db "WHAT",0,2
+        db "WHO",0,2
+        db "WHY",0,2
+        db "REMEMBER",0,5
+        db "DRAW",0,8
+        db "SAVE",0,8
         db 0
 
-; tudástábla: [kulcsszó][0][tény][0]
+; knowledge table: [keyword][0][fact][0]
 KBTAB:
-        db "CICA",0,"A cica aranyos.",0
-        db "ZX81",0,"3,25 MHz-en gondolkodom, 16 KB RAM-mal.",0
+        db "HELLO",0,"Hello there! Nice to meet you.",0
+        db "CAT",0,"Cats are lovely companions.",0
+        db "ZX81",0,"I think at 3.25 MHz with 16 KB of RAM.",0
         db 0
 
 ; ASCII(32..127) -> ZX81-kód; SAFEPCHR tiltja a 0x76-ot és 0xC0+ kódokat

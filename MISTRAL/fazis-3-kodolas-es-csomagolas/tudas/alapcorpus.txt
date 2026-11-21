@@ -1,16 +1,15 @@
-PIOCO alaptudásminta — a rezidens alapcsomag forrása.
-a motor két úton merít innen: kulcsszó-tény párok (KB-keresés) és
-gyakori szóalapok (tokenizálás). Ezek a sorok táplálják mindkettőt.
+PIOCO base-knowledge seed (English prototype).
+Feeds two paths: keyword-fact pairs (KB search) and frequent word stems.
 
-udvozlet szia hali koszi rendben rendben rendes
-cica macska allat aranyos kedves allatkert
-gep szamitogep z80 zx81 memoria kijelzes billentyu regiszter
-lassu gyors sebesseg veletlen kerdes valasz varakozas
-ember emberi nev datum ora szuletesi ev honap nap
-gondolkodas tervezes emlekezet elavul otthon munka
-fejfajas hangerő hibatlan szunet doboz
-tudomany csillag bolygo manapsag minden
-gasztro kaja etel fozes recept izletes
-retro nosztalgia konyv polc gyujtes
-emlekezz megjegyzes kompakt mentes betoltes
-segitseg hiba leiras akcio frissites vezerlo
+greeting hi hello thanks okay right nice
+cat dog animal lovely pet friend friendship
+computer z80 zx81 memory screen keyboard register random
+slow fast speed question answer wait think thinking
+person human name date time birthday year month day
+plan memory aging home work learn
+headache quiet break rest sleep box
+science star planet orbit moon every
+food meal cook recipe taste kitchen
+retro nostalgia book shelf collection
+remember note compact save load
+help error action update control draw

@@ -1,0 +1,7 @@
+HEALTH theme package (CSOMAGTERULET format; max 1536 bytes)
+<keyword><TAB><fact text>
+sleep	Sleep helps memory and recovery; adults usually need 7-9 hours.
+water	Drinking water regularly keeps the body balanced.
+exercise	Regular light exercise improves mood and focus.
+fever	A fever often means the body is fighting an infection.
+headache	Headaches can come from tension, screens, or lack of rest.
