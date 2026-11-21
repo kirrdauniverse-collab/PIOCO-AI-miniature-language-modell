@@ -92,8 +92,8 @@ A ZX81 rendszerváltozói 0x4000-től folynak; a motor a saját állapotait **a 
 | --- | ---: | --- |
 | 0x00–0x0F | 16 | vezérlőtokenek: szóhatár, mondatvége, választerv-jelölők |
 | 0x10–0x1F | 16 | **Agent-parancs-tokenek** (9. fejezet) — a képernyőre nem kerülhető tartomány (5.1), ezért programhiba esetén sem íródhatnak ki |
-| 0x20–0x3B | 28 | magyar toldaléktokenek (-ban/-ben, -nak/-nek, -ra/-re, -val/-vel, -t, -ok/-ek/-ök stb. — a ragrendszer törzse) |
-| 0x3C–0xEF | 180 | szótokenek (a gyakorisági statisztika szerinti leggyakoribb magyar szavak) |
+| 0x20–0x3B | 28 | toldalék/funkció-tokenek (angol prototípus: THE, A, AND, IS, ARE, I, YOU, NOT stb. + utótagok: -S, -ED, -ING, -LY, 'S — D-3.2) |
+| 0x3C–0xEF | 180 | szótokenek (a korpusz leggyakoribb tartalmi szavai — angol prototípus) |
 | 0xF0–0xFF | 16 | betűtokenek (ismeretlen szó betűesése) |
 
 ### 3.2 Korrekció a fázis-1-es becsléshez képest (D-3.1)
@@ -104,15 +104,19 @@ Az 1. fázis „kb. 400–460 token" becslést adott, de minden token-ID 1 bájt
 
 A nyelvi modell magja a 2–3 szó kontextusú trigram-táblázat **4 bites egész súlyokkal** (`-8..+7`, bájtonként kettő csomagolva — itt rekordonként 1 súlynibble + 1 tartaléknibble). Rekord: `k1, k2, k3, [súly|tartalék]` = 4 bájt; 250 rekord = 1000 B. A súlyok a PC-s csomagépítőben kvantálódnak: a korpusz-számítás 16 bites, a kvantálás után a motoroldali keresés egészszámos (`nibble → előjeles bővítés → összegzés`), lebegőpontos művelet nélkül. A keresés: kontextus `(k1,k2)` illesztése → talált trigramok súly szerinti rangsorolása → hőmérséklet szerinti top-k → választás (13. fejezet).
 
+### 3.4 Nyelvi irány: angol prototípus (D-3.2 — a projektgazda döntése, 2026-11-21)
+
+A prototípus nyelve **angol**: a magyar nyelv nagy helyet foglal és bonyolult (törzs + gazdag ragozás), míg az angol egyszerűbb morfológiával **több szót** enged befogadni a 224 tartalmi tokenbe — a kiforrott modell után pedig visszatérhetünk a magyar finomítására (a toldaléktoken-sáv, 0x20–0x3B, akkor a magyar ragrendszerre vált át). A ZX81 karakterkészlete csak **nagybetűs** karaktereket tartalmaz, ezért minden szöveg nagybetűs ASCII-ben él a szótárban, és a motor **ASCII→ZX81 kódtáblája** fordít printkor — a tábla tartalma nyílt tétel a ROM-listából; rossz tábla esetén a print-tölcsér csak szóközt ad, a `0x76`-biztonság nem sérül. Ehhez kapcsolódó egyszerűsítés: a PERSIST mágia ASCII „P", „C" (0x50, 0x43), a korábbi „ZX81-kód" felvetés helyett. Az eszközök (tokengen) már ezt az angol irányt implementálják.
+
 ## 4. Bitmezők végleges bontása
 
 ### 4.1 PERSIST_BLOCK elrendezés (0x4100–0x41FF)
 
-A teljes blokk **XOR 0xA5 maszkkal** tárolódik, **CRC-16** (polinom 0x1021, kezdőérték 0xFFFF) zárja, és minden bitmezőre igaz a **„76-kerülő"**: mentéskor, ha a maszkolt bájt mégis éppen `0x76` lenne, a motor a tartalék bitet átbillenti, amíg a tárolt érték nem `0x76` — így a maszk ellenére sem állhat elő a sorszáró kód. A mágia két bájtja a „P", „C" betűk ZX81-kódjai (pontos kódértékeket a karaktertáblából a 3. fázis rögzíti); hibás mágia vagy CRC esetén a blokk üresnek számít, és a motor a BOOT-sávos újrakérdezéssel áll helyre.
+A teljes blokk **XOR 0xA5 maszkkal** tárolódik, **CRC-16** (polinom 0x1021, kezdőérték 0xFFFF) zárja, és minden bitmezőre igaz a **„76-kerülő"**: mentéskor, ha a maszkolt bájt mégis éppen `0x76` lenne, a motor a tartalék bitet átbillenti, amíg a tárolt érték nem `0x76` — így a maszk ellenére sem állhat elő a sorszáró kód. A mágia két bájtja az ASCII „P", „C" (0x50, 0x43 — a D-3.2 nyelvi döntéssel egyszerűsítve); hibás mágia vagy CRC esetén a blokk üresnek számít, és a motor a BOOT-sávos újrakérdezéssel áll helyre.
 
 | Offset | Méret | Tartalom |
 | --- | ---: | --- |
-| 0x00 | 2 | mágia „P", „C" (ZX81-kódok) — érvénytelen mágia → üres profil |
+| 0x00 | 2 | mágia „P", „C" (ASCII 0x50, 0x43) — érvénytelen mágia → üres profil |
 | 0x02 | 1 | verzió (0x01) |
 | 0x03 | 1 | FLAGS (4.2) |
 | 0x04 | 1 | hőmérséklet alapérték (alsó 2 bit, 1–4) + tartalék |

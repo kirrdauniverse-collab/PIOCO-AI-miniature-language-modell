@@ -53,3 +53,21 @@
   - a 3. fázis „nem dönt újra" listája + **első öt futtatható szelet** (BOOT → üres csevegő → tokenizáló+SAY → SETBIT/REMIND/DRAW/BASIC → mentés/visszatöltés).
 - Minden bontást `scripts/pio_f2_calc.py` ellenőrzött; a platformtények forrás-hitelesítve (Wikipedia ZX81 character set, Timex Sinclair Video Display System, ZX81 ROM listing, reids4fun PLOT-méret, andrivet memóriatérkép).
 - **Következő:** 3. fázis — kódolás és csomagolás (Z80 motor, PC-s eszközök, első futó `.T81`, turbo OFF), a 14.4 szeletei szerint.
+
+## 2026-11-21 · Nyelvi döntés (D-3.2) + 3. fázis elindítva — 1. szelet 🔵
+
+- **Nyelvi döntés (a projektgazda kérésére, D-3.2):** a prototípus nyelve **angol** — a magyar nagy helyet foglal és bonyolult, az angol egyszerűbb morfológiával több szót enged el a 224 tartalmi tokenbe; a magyar a kiforrott modell utáni finomítási fázisban tér vissza (a 0x20–0x3B toldalék-sáv akkor vált magyar ragrendszerre). A ZX81 csak nagybetűt tartalmaz → minden szöveg nagybetűs ASCII, a motor ASCII→ZX81 táblája fordít printkor; a PERSIST mágia egyszerűsítve ASCII „P”, „C”. Rögzítve: `docs/fazis-2-terveles.md` új 3.4 fejezet.
+- **3. fázis, 1. szelet elkészült** (`eszkozok/`, `motor/`, `tudas/`, `kazetta/`):
+  - `eszkozok/crc16.py` — CRC-16/CCITT-FALSE, önteszt a szabványos 0x29B1 vektorral;
+  - `tudas/alap_korpusz_en.txt` — angol prototípus-korpusz (59 sor: üdvözlet, állapot, rajz, BASIC, emlékeztető, hangulat, vita);
+  - `eszkozok/tokengen.py` → `kazetta/adat/szotar.bin` (pontosan 2304 B): 19 funkciószó (0x20+) + 126 tartalmi szó (0x3C+) + 16 betű (0xF0+), rekordterület 723/1144 B, **250/250 trigram**, korpusz-lefedettség 100% (betűesés a maradékra); ember-olvasható lista: `tudas/szotar_en_lista.txt`;
+  - `eszkozok/alapmag_gen.py` → `alapmag.bin` (2048 B, 32 slot × 64 B, 32 angol vázsablon hangulat-bitekkel);
+  - `eszkozok/z80asm.py` — mini Z80 assembler, **57 kézzel ellenőrzött kódolás + DB/DW/címke önteszt**; két átmenet, méret-mód előre-hivatkozásokhoz, unáris mínusz;
+  - `motor/boot.asm` — **1. szakasz** (képernyő-nullázás 792 B, PERSIST init mágia+verzió+nullázás+CRC, blokk-betöltő a ROM **IN-BYTE 0x034C** hívásával, típus→célcím táblával) → `boot.bin` **262 B** a 382-es korlát alatt (120 B ráhagyás);
+  - `motor/motor0.asm` — **2. szakasz** (hátralévő blokkok betöltése, splash, főciklus-váz, print-tölcsér + ASCTBL) → `motor0.bin` 155 B (0x4600);
+  - `eszkozok/epites.py` — assemble + korlát-ellenőrzés (stage-1 < 0x4200!);
+  - `eszkozok/csomaggen.py` → `kazetta/pioco-0.1.tape` (**5 blokk, 4863 B**: PIOCOBOOT 262 → PIOCOMOT 155 → PIOCOSZO 2304 → PIOCOALAP 2048 → PIOCOPACK 64; minden blokk: 4 B fejléc + CRC-16; **visszatöltés-teszt: minden CRC OK**).
+- **Hitelesített ROM-anchorgok** (forrás: ZX81 ROM listing / Timex Sinclair / andrivet): IN-BYTE = 0x034C (bájt a C-ben), LOAD = 0x0340, gépi kód belépés = 16514 (0x4082, REM sor), billentyűzet: `IN r,(C)` a B-felső címvonalakkal (A8–A15 sorkiválasztás, port 0xFE).
+- **Architektúra-javítás a méretmérésből:** az eredeti egyfokozatú BOOT-kód (520 B) átnőtt volna a 0x4200-as D_FILE-zónába → **két szakaszos indítás** (karcsú betöltő ≤ 382 B + stage-2 a 0x4600-ra töltve), ami egyébként is a fázis-2 blokktervének felel meg (PIOCOBOOT → PIOCOMOT).
+- **Nyílt tételek a következő körre** (emulátor-ellenőrzéssel): a szalag **pulse-rétege** (a `.tape` most a saját 6.2 blokkformátum nyers bájtja — a `.p`/`.T81` burkolás és a pilot/sync csak emulátor-igazolással készül el, nem találgatással); ASCTBL tartalma (ROM-karaktertábla); IN-BYTE regiszter-megőrzése; INPUT-döntés (ROM INPUT vs KSCAN).
+- **Következő:** 2. szelet — emulátoros futás (EightyOne/z81), INPUT + Agent-kör váza, majd a 14.4 lista szerint tovább.
