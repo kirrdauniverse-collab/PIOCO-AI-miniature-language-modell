@@ -1,0 +1,46 @@
+PIOCO AI — pioco-by-GLM-0.4.p — használati utasítás (2026-11-22)
+================================================================
+
+MI ÚJ VAGY A 0.4-BEN
+--------------------
+* JAVÍTVA AZ AZONNALI ÚJRAINDULÁS: az előző (.3) fájl fejlécében a NXTLIN
+  rendszerváltozó (0x4029 — "a következő végrehajtandó BASIC-sor címe")
+  rossz címre mutatott (a hordozó-adatra), és a gép a LOAD után ezt akarta
+  "sorként végrehajtani" → azonnali restart. Mostantól a fejléc bájtonként
+  megegyezik a 30 éve bevált zmakebas recepttel, és a pfuttatas végleges
+  kapuval őrzi (D-4.0). Ha a .3-as is restartolt nálad, ez volt az oka.
+* Magyar identitás-válaszok (ékezet nélkül — a ZX81 nem tud ékezetet):
+  KI KESZITETT? / WHO MADE YOU? → "GLM SEGITSEGGEL KESZITETT SAFAR SANDOR."
+  KI AZ A SAFAR SANDOR? → "MAGYARORSZAGON ELO AUTOBUSZVEZETO, AMATOR IRO
+  ES CSILLAGASZ."
+  WHAT IS YOUR EMAIL? / EMAIL? → "EMAIL: SAFIZX810GMAIL.COM." (a 0 az @ —
+  a ZX81 nem tud kukacot rajzolni, ahogy te is szoktad írni)
+  EGY FECSKE NEM CSINAL NYARAT. (szólás-slot)
+* Obszcén-mód: durva szóra (F**K, BASTARD, WANKER, SZAR...) a modell
+  sérteget vissza; csak kocsma-nyelvre (bloody, damn, hell, crap...) ugyanolyan
+  hangnemben felel. A detektor-szólista szándékosan NINCS a szótárban, hogy
+  normál beszédben sosem generálja véletlenül.
+* Elgépelés-tűrés: az ismeretlen szót a legközelebbi szótári szóként érti,
+  ha legfeljebb 1 karakter tér el (SANDEOR → SANDOR).
+* Ismeretlen szó visszatanulása: ha egy szó nincs a szótárban, de a
+  beszélgetésben szerepel, a modell munkamenet-pufferből visszahasználja —
+  szótár-frissítés nélkül.
+* Az utótag-tokenek (-S/-ED/-ING/-LY) rögzített ID-n: DREAMED → DREAM + -ED
+  (egy tő négy ragozott alakot ér).
+
+BETÖLTÉS (ZX81, 16K)
+--------------------
+1. LOAD ""  → a fájl betöltése (a spec-hű betöltők a 0x80-kapu miatt már
+   nem csonkolják — l. D-3.9).
+2. Ha a betöltő kéri: RUN + NEWLINE → splash ("PIOCO AI" / "16K PIOCO 0.1"),
+   a főciklus nyugodt várakozás (MWAIT). Kilépni RESET-tel lehet (a 0.5-ös
+   chat-körtől a billentyű él).
+3. A mozdulatok: a betöltés utáni "0 OK" és a splash megjelenése jelzi, hogy
+   a fejléc és a hordozó rendben van.
+
+A FÁJL FELÉPÍTÉSE (ellenőrizhető)
+---------------------------------
+5103 B; program 385 B @0x407D (1 REM 361 B + 2 RAND USR 16514); adat 4576 B
+@0x41FE (XOR 0x3E-kódolt hordozó); 25×0x76 zárókép + 0x80 VARS-záró.
+A fejléc a zmakebas recept: D_FILE=0x53DE, VARS=0x53F7, E_LINE=0x53F8,
+NXTLIN=0x53DE (D-4.0 javítás), DF_SZ=2, MARGIN=55.

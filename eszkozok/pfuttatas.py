@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""PIOCO AI — pfuttatas.py: VIRTUÁLIS EMULÁTOR-TESZT a pioco-0.3.p fájlon.
+"""PIOCO AI — pfuttatas.py: VIRTUÁLIS EMULÁTOR-TESZT a pioco-0.4.p fájlon.
 
 v2 — a v1 teszt az elavult (REM-hordozós, 6 soros) felépítést nézte;
 az új, C/6-javított elrendezést vizsgálja:
@@ -23,7 +23,7 @@ from szimfuttatas import a2z, zx_to_txt
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ADAT = os.path.join(BASE, "kazetta", "adat")
-PFILE = os.path.join(BASE, "kazetta", "pioco-0.3.p")
+PFILE = os.path.join(BASE, "kazetta", "pioco-0.4.p")
 SCREENSHOT = os.path.join(BASE, "kazetta", "kepernyokep_p.txt")
 
 DFILE = 0x4200
@@ -40,6 +40,23 @@ def main():
     XORKEY = int(_m.group(1), 16)
     pf = open(PFILE, "rb").read()
     assert len(pf) > 0x74 + 100, "túl rövid a .P"
+
+    # --- D-4.0 KAPU: a sysvar-fejléc (0x74 B) a hiteles zmakebas receptnek
+    #     kell feleljen — a régi data_start-ú NXTLIN (0x4029) szemét-mutatót
+    #     adott a LOAD utáni futtatásnak = az "azonnali restart" gyökere ---
+    sv = lambda off: pf[off] | (pf[off + 1] << 8)     # .P offset → fejléc-word
+    h = lambda addr: sv(addr - 0x4009)                # sysvar-cím → fejléc-word
+    assert h(0x400C) == h(0x400E) - 1, "DF_CC != D_FILE+1 (zmakebas recept)"
+    assert h(0x4010) == h(0x400C) + 25, "VARS != D_FILE+25 (az összezsugorított képernyő után)"
+    assert h(0x4014) == h(0x4010) + 1, "E_LINE != VARS+1"
+    assert h(0x4016) == h(0x4010), "CH_ADD != VARS"
+    assert h(0x401A) == h(0x4014) and h(0x401C) == h(0x4014), "STKBOT/STKEND != E_LINE"
+    assert h(0x4023) == 1 and pf[25] == 2, "DF_SZ(1B)/S_TOP eltérés a recepttől"
+    assert h(0x4026) == 0xFFFF and pf[28] == 0xFF and pf[31] == 55, \
+        "LAST_K/FRAMES/MARGIN eltérés a recepttől"
+    assert h(0x4029) == h(0x400C), \
+        "D-4.0 KAPU: NXTLIN nem a display címe (zmakebas no-autostart recept)!"
+    assert pf[48:51] == bytes([33, 24, 0x40]), "S_POSN/CDFLAG eltérés"
 
     # --- 1. ROM LOAD: a fájl a 0x4009-től visszakerül a memóriába ---
     sim = Z80Sim()

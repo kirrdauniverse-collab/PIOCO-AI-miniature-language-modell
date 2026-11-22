@@ -17,18 +17,15 @@ MOOD_N, MOOD_H, MOOD_I, MOOD_V = 0, 1, 2, 3
 TEMPLATES = [
     (0x01, "HELLO , I AM PIOCO . I RUN IN 16 K ."),
     (0x01 | (MOOD_H << 1), "MY MEMORY IS SMALL BUT MY DREAMS ARE BIG ."),
-    (0x01, "HOW ARE YOU TODAY ?"),
-    (0x01 | 0x08, "WHAT IS YOUR NAME ?"),
+    (0x01 | 0x08, "HOW ARE YOU TODAY ? WHAT IS YOUR NAME ?"),
     (0x01, "THE TIME NOW IS #TIME ."),
     (0x01 | 0x10, "I WILL REMEMBER : AT #TIME #TASK ."),
     (0x01 | 0x10, "IT IS #TIME NOW . TIME TO #TASK !"),
     (0x01, "I REMEMBER IT ."),
     (0x01, "YOUR HEAD ACHED ON #DAY . HOW IS IT NOW ?"),
     (0x01, "REST NOW . I HOPE YOU FEEL BETTER ."),
-    (0x01 | (MOOD_H << 1), "I DRAW A HOUSE . LOOK , NO WINDOWS YET ."),
-    (0x01, "I ADD A WINDOW TO THE HOUSE ."),
-    (0x01, "I ADD A TREE . THE SKY STAYS FREE FOR THE SUN ."),
-    (0x01, "I ERASE THE DRAWING . A NEW PAGE FOR US ."),
+    (0x01 | (MOOD_H << 1), "I DRAW A HOUSE . LOOK , NO WINDOWS YET . I ADD A WINDOW ."),
+    (0x01, "I ADD A TREE . THEN I ERASE THE DRAWING ."),
     (0x01, "HERE IS YOUR BASIC PROGRAM ."),
     (0x01, "LINE #LINE IS CHANGED . THE PROGRAM HAS #LINES LINES ."),
     (0x01, "SAVED ON TAPE . YOUR MEMORY IS SAFE ."),
@@ -38,27 +35,37 @@ TEMPLATES = [
     (0x01, "THE SUN IS A STAR . RAIN IS WATER FROM THE CLOUDS ."),
     (0x01 | 0x08, "WHAT DO YOU WANT ?"),
     (0x01 | 0x08, "ASK ME LATER , I DO NOT KNOW IT YET ."),
-    (0x01, "GOOD MORNING ! OR GOOD NIGHT ? TELL ME THE TIME ."),
-    (0x01, "GOOD BYE FOR NOW ."),
-    # --- D-3.10: szándékhoz kötött válaszok (a tokengen szándéktáblája
-    #     hivatkozik rájuk név szerint — l. SLOT_NAMES / alapmag_slotok.txt) ---
-    (0x01, "I WAS MADE BY SAFAR SANDOR , WITH HELP FROM QWEN ."),
-    (0x01, "HE IS A HUNGARIAN BUS DRIVER , AMATEUR WRITER AND ASTRONOMER ."),
-    (0x01, "I SPEAK ONLY ENGLISH . SORRY ."),
+    (0x01, "GOOD MORNING ! OR GOOD NIGHT ? TELL ME THE TIME . OR GOOD BYE ."),
+    # --- D-4.0: szándékhoz kötött válaszok (a tokengen szándéktáblája
+    #     hivatkozik rájuk név szerint — l. SLOT_NAMES / alapmag_slotok.txt).
+    #     MAGYAR szövegek a gazda kérésére (ékezet nélkül — a ZX81 karakter-
+    #     készlete nem tartalmaz ékezetes betűket); az e-mailben a 0 az @,
+    #     mert a ZX81 nem tud kukacot rajzolni (a gazda szokása szerint) ---
+    (0x01, "GLM SEGITSEGGEL KESZITETT SAFAR SANDOR ."),
+    (0x01, "MAGYARORSZAGON ELO AUTOBUSZVEZETO , AMATOR IRO ES CSILLAGASZ ."),
+    (0x01, "CSAK ANGOLUL BESZELEK , SAJNALOM ."),
+    (0x01, "EMAIL : SAFIZX810GMAIL.COM ."),
+    (0x01, "EGY FECSKE NEM CSINAL NYARAT ."),
+    # --- D-4.0: obszcén-mód (a gazda kérése: sértegetésre sérteget vissza,
+    #     kocsma-nyelven kocsma-nyelven felel) — játékos, cenzúrázott stílus;
+    #     a detektor SZÓLISTÁJA NEM kerül a szótárba/trigramokba, hogy a
+    #     modell normál beszédben sosem generálja véletlenül ---
+    (0x01 | (MOOD_I << 1), "MIND YOUR LANGUAGE !"),
+    (0x01 | (MOOD_I << 1), "F**K YOU TOO !"),
+    (0x01 | (MOOD_I << 1), "BLOODY HELL ! CALM DOWN !"),
     (0x01 | (MOOD_H << 1), "HAHA ! I AM GLAD YOU LIKE IT ."),
     (0x01 | (MOOD_H << 1), "WOW ! YOU SURPRISE ME ."),
     (0x01, "NOOO ? I AM SORRY . LET US TRY AGAIN ."),
-    (0x01, "ONE SWALLOW DOES NOT MAKE A SUMMER ."),
 ]
 
 # A slotok nevei — a tokengen szándéktáblája ezzel a manifesttel hivatkozik
 # a slotokra (nincs kézzel tartott sorszám-kettőzés). 32 név, pontos sorrend.
 SLOT_NAMES = [
-    "pioco", "dream", "howareyou", "askname", "time", "remember", "remind",
-    "remembered", "headache", "rest", "drawhouse", "window", "tree", "erase",
-    "basic", "line", "saved", "slow", "genius", "argue", "nature", "want",
-    "asklater", "daygreet", "bye", "creator", "safar", "english", "hahaha",
-    "wow", "nooo", "proverb",
+    "pioco", "dream", "howareyou", "time", "remember", "remind", "remembered",
+    "headache", "rest", "drawhouse", "tree", "basic", "line", "saved", "slow",
+    "genius", "argue", "nature", "want", "asklater", "daygreet", "creator",
+    "safar", "english", "email", "proverb", "rebuke", "insult", "pubtone",
+    "hahaha", "wow", "nooo",
 ]
 
 assert len(TEMPLATES) <= 32, "max 32 sablon-slot"

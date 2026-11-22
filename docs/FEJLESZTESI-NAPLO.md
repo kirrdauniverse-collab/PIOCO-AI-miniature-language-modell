@@ -151,3 +151,40 @@ A felhasználó hét kérdésére épülő kör (mind válasz MOST került az ad
 **D-3.9 folytatás:** az új adatban 0xC0 bájt jelent meg, a pgen-kapua lecsapott (pontosan, ahogy terveztük); a XOR-kulcs egyetlen forrása most a motor/boot.asm (XORKEY EQU 0x3E), a pgen és a pfuttatas onnan olvassa — többé nem csúszhat szét három kézzel tartott érték.
 
 **Minden teszt zöld** (epites, csomaggen, szimfuttatas, pgen + 0x80-kapu, pfuttatas; CRC-k frissültek). A .P felépítése változatlan (5103 B, 1 db 0x80 a záróban) — a viselkedés splash-demo marad; az új adatréteget a következő szelet, a Z80 CHAT-KÖR fogyasztja (v0.4 = az első valóban beszélgető, kipróbálható változat).
+
+## 2026-11-22 · 3. fázis, 8. szelet — AZ AZONNALI RESTART GYÖKERE (D-4.0) + a gazda új kérései ✅
+
+**A hiba (végleges diagnózis):** a .P fejlécében a NXTLIN rendszerváltozó (0x4029, "a következő
+végrehajtandó BASIC-sor címe") a hordozó-adat címét kapta (0x41FE) — a pgen "a program utáni
+első bájt" feltételezéssel írta. A ROM a LOAD utáni futtatásnál innen olvas "sort": a
+XOR-kódolt hordozót BASIC-sorként értelmezve parser-chaos → RST 0 = azonnali restart. A korábbi
+verzióknál a C/F080-csonkolás elfedte ezt (sosem jutottak el idáig); a v0.3 volt az első, ami
+egészben betöltött — ezért jelentkezett most. A javítás: NXTLIN = a display-file címe (a
+hiteles zmakebas no-autostart recept), és a pfuttatas VÉGLEGES KAPUVAL őrzi a teljes 0x74 B-s
+fejlécet (D_FILE/DF_CC/VARS/E_LINE/CH_ADD/STKBOT/STKEND/DF_SZ/S_TOP/LAST_K/FRAMES/MARGIN/
+NXTLIN/S_POSN — a hiteles receptet a timex-sinclair zmakebas-port createHeader() adja).
+**Renderváltozó-térkép hitelesítve** a valódi ROM listájából: RAMTOP=0x4004 (nem 0x4008!),
+VARS=0x4010 (nem 0x4009!), CH_ADD=0x4016, STKBOT=0x401A, DF_SZ=0x4022, S_TOP=0x4023,
+NXTLIN=0x4029, MARGIN=0x4028 — a korábbi pfuttatas "VARS=0x4009"-olvasása hibás címezés volt.
+
+**Emulátor-hitelesség (romsim, D-4.0):** három valódi eltérés javítva a saját ROM-szimulátorban:
+(1) reset után az NMI-kapu ZÁRVA (a valódi ULA: OUT(FD) bit7; a resetkor mindig-BE állás a
+RAM-CHECK-et döntötte szét); (2) kapuzárt állapotban a "soralapú INT-csalás" ELTÁVOLÍTVA (a valódi
+ZX81 ULA kapuzárva-nállásban SEMMILYEN megszakítást nem ad — a korábbi 0x0038-vihar az init
+IM1-utáni részét rombolta); (3) a 0x0044-es videó-trükk (LD R,A / EI / JP (HL)) hookolva: a
+JP-t nem hajtjuk végre, helyette soridő + sor-NMI (a valódi gépen az ULA ciklus-csenése miatt a
+kijelző-bájtok végrehajtása láthatatlan — CPU-szinten nélküle wild PC → RST 38). Ismert nyitott
+tételek: a sim teljes szerkesztői útja (CLS LDIR/RET lánc) még kisodródik — saját sim-hiba,
+nem blokkolja a .P validációt (a pfuttatas USR-útja + a fejléc-kapu a mérvadó).
+
+**A gazda új kérései (mind megvalósítva):** magyar identitás-válaszok (GLM SEGITSEGGEL KESZITETT
+SAFAR SANDOR / MAGYARORSZAGON ELO AUTOBUSZVEZETO, AMATOR IRO ES CSILLAGASZ / CSAK ANGOLUL
+BESZELEK SAJNALOM / EGY FECSKE NEM CSINAL NYARAT) + EMAIL-slot (SAFIZX810GMAIL.COM — a 0 az @,
+a ZX81 nem tud kukacot) + HU trigger-tokenek (KI/KESZITETT/CSINALTA/EMAIL/MAGYARUL/BESZEL, a
+szándéktábla 23 bejegyzésre bővült, 139/144 B); obszcén-mód (durva → azonnal sérteget-vissza,
+enyhe → kocsma-regiszter; a detektor-szólista SZÁNDÉKOSAN kimarad a szótárból, hogy normál
+beszédben sosem generálja); elgépelés-tűrés (Levenshtein-1, SANDEOR→SANDOR); ismeretlen szó
+visszatanulása (echo-puffer spec, 8×16 B szabad RAM-ban); sortörés (egész szavak, minden szótári
+szó ≤ 18 B ≤ 32 kar). Az alapmag slot-összevonásokkal (howareyou+askname, drawhouse+window,
+tree+erase, daygreet+bye) helyet kapott a 4 új válasz. Rekordlimit 15→18 B (SAFIZX810GMAIL.COM).
+v0.4 = pioco-0.4.p (5103 B), minden teszt zöld (epites/csomaggen/szimfuttatas/pgen+kapuk/pfuttatas).

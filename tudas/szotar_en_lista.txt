@@ -1,6 +1,6 @@
 PIOCO AI — angol szótár (prototípus) — generált lista
-rekordterület: 1018/1144 B
-betűtábla: EAOISTNRHMUDLYWG
+rekordterület: 1041/1144 B
+betűtábla: AEOSITRNHMLUDYWG
 trigramok: 250/250
 
 ID    típus      szöveg
@@ -81,155 +81,160 @@ ID    típus      szöveg
 0x69  SZO        6
 0x6A  SZO        8
 0x6B  SZO        9
-0x6C  SZO        .
-0x6D  SZO        ?
-0x6E  SZO        AM
-0x6F  SZO        ME
-0x70  SZO        NOW
-0x71  SZO        !
-0x72  SZO        30
-0x73  SZO        STARS
-0x74  SZO        WHAT
-0x75  SZO        7
-0x76  SZO        FROM
-0x77  SZO        GOOD
-0x78  SZO        HE
-0x79  SZO        PROGRAM
-0x7A  SZO        US
-0x7B  SZO        20
-0x7C  SZO        ABOUT
-0x7D  SZO        DRAW
-0x7E  SZO        HELP
-0x7F  SZO        KNOW
-0x80  SZO        LET
-0x81  SZO        LIKE
-0x82  SZO        NO
-0x83  SZO        PIOCO
-0x84  SZO        REMEMBER
-0x85  SZO        SLOW
-0x86  SZO        SUN
-0x87  SZO        TELL
-0x88  SZO        TIME
-0x89  SZO        TODAY
-0x8A  SZO        YES
-0x8B  SZO        00
-0x8C  SZO        10
-0x8D  SZO        16
-0x8E  SZO        :
-0x8F  SZO        ALARM
-0x90  SZO        AT
-0x91  SZO        BETTER
-0x92  SZO        BIG
-0x93  SZO        BUT
-0x94  SZO        HAS
-0x95  SZO        HEAD
-0x96  SZO        HELLO
-0x97  SZO        HOUSE
-0x98  SZO        HOW
-0x99  SZO        K
-0x9A  SZO        MACHINE
-0x9B  SZO        MEMORY
-0x9C  SZO        NAME
-0x9D  SZO        NIGHT
-0x9E  SZO        RAIN
-0x9F  SZO        RUN
-0xA0  SZO        SEE
-0xA1  SZO        SET
-0xA2  SZO        SICK
-0xA3  SZO        SMALL
-0xA4  SZO        STAR
-0xA5  SZO        TINY
-0xA6  SZO        UP
-0xA7  SZO        WANT
-0xA8  SZO        WEATHER
-0xA9  SZO        WORK
-0xAA  SZO        ZX81
-0xAB  SZO        12
-0xAC  SZO        40
-0xAD  SZO        45
-0xAE  SZO        =
-0xAF  SZO        ACHED
-0xB0  SZO        AMATEUR
-0xB1  SZO        AN
-0xB2  SZO        ANNA
-0xB3  SZO        APPLES
-0xB4  SZO        ASK
-0xB5  SZO        BASIC
-0xB6  SZO        BOX
-0xB7  SZO        BY
-0xB8  SZO        BYE
-0xB9  SZO        CHAT
-0xBA  SZO        CLOUDS
-0xBB  SZO        COMPUTER
-0xBC  SZO        COUNT
-0xBD  SZO        DAY
-0xBE  SZO        DEMO
-0xBF  SZO        DRAWING
-0xC0  SZO        DREAM
-0xC1  SZO        DREAMS
-0xC2  SZO        DRIVES
-0xC3  SZO        EDIT
-0xC4  SZO        ERASE
-0xC5  SZO        FAR
-0xC6  SZO        FAST
-0xC7  SZO        FEEL
-0xC8  SZO        FINE
-0xC9  SZO        FIVE
-0xCA  SZO        FUN
-0xCB  SZO        GENIUS
-0xCC  SZO        GIVE
-0xCD  SZO        GO
-0xCE  SZO        GOTO
-0xCF  SZO        GREAT
-0xD0  SZO        LATER
-0xD1  SZO        LIKES
-0xD2  SZO        LINE
-0xD3  SZO        LINES
-0xD4  SZO        MATTER
-0xD5  SZO        MODEL
-0xD6  SZO        MORNING
-0xD7  SZO        MUSIC
-0xD8  SZO        OR
-0xD9  SZO        PC
-0xDA  SZO        PLEASE
-0xDB  SZO        PRINT
-0xDC  SZO        REM
-0xDD  SZO        REST
-0xDE  SZO        ROOM
-0xDF  SZO        SAVE
-0xE0  SZO        SENSORS
-0xE1  SZO        SHOULD
-0xE2  SZO        SIMPLE
-0xE3  SZO        SING
-0xE4  SZO        SKY
-0xE5  SZO        SONG
-0xE6  SZO        SONGS
-0xE7  SZO        STOP
-0xE8  SZO        TALK
-0xE9  SZO        TAPE
-0xEA  SZO        THAN
-0xEB  SZO        THANK
-0xEC  SZO        THINK
-0xED  SZO        TIRED
-0xEE  SZO        TREE
-0xEF  SZO        TUESDAY
+0x6C  SZO        KI
+0x6D  SZO        KESZITETT
+0x6E  SZO        CSINALTA
+0x6F  SZO        EMAIL
+0x70  SZO        MAGYARUL
+0x71  SZO        BESZEL
+0x72  SZO        .
+0x73  SZO        ?
+0x74  SZO        AM
+0x75  SZO        ME
+0x76  SZO        NOW
+0x77  SZO        WHAT
+0x78  SZO        !
+0x79  SZO        30
+0x7A  SZO        HE
+0x7B  SZO        STARS
+0x7C  SZO        7
+0x7D  SZO        FROM
+0x7E  SZO        GOOD
+0x7F  SZO        PROGRAM
+0x80  SZO        US
+0x81  SZO        20
+0x82  SZO        :
+0x83  SZO        ABOUT
+0x84  SZO        DRAW
+0x85  SZO        HELP
+0x86  SZO        KNOW
+0x87  SZO        LET
+0x88  SZO        LIKE
+0x89  SZO        NO
+0x8A  SZO        PIOCO
+0x8B  SZO        REMEMBER
+0x8C  SZO        SLOW
+0x8D  SZO        SUN
+0x8E  SZO        TELL
+0x8F  SZO        TIME
+0x90  SZO        TODAY
+0x91  SZO        YES
+0x92  SZO        00
+0x93  SZO        10
+0x94  SZO        16
+0x95  SZO        ALARM
+0x96  SZO        AMATEUR
+0x97  SZO        AT
+0x98  SZO        BETTER
+0x99  SZO        BIG
+0x9A  SZO        BUT
+0x9B  SZO        HAS
+0x9C  SZO        HEAD
+0x9D  SZO        HELLO
+0x9E  SZO        HOUSE
+0x9F  SZO        HOW
+0xA0  SZO        K
+0xA1  SZO        MACHINE
+0xA2  SZO        MEMORY
+0xA3  SZO        NAME
+0xA4  SZO        NIGHT
+0xA5  SZO        RAIN
+0xA6  SZO        RUN
+0xA7  SZO        SEE
+0xA8  SZO        SET
+0xA9  SZO        SICK
+0xAA  SZO        SMALL
+0xAB  SZO        STAR
+0xAC  SZO        TINY
+0xAD  SZO        UP
+0xAE  SZO        WANT
+0xAF  SZO        WEATHER
+0xB0  SZO        WORK
+0xB1  SZO        ZX81
+0xB2  SZO        12
+0xB3  SZO        40
+0xB4  SZO        45
+0xB5  SZO        =
+0xB6  SZO        ACHED
+0xB7  SZO        AN
+0xB8  SZO        ANGOLUL
+0xB9  SZO        ANNA
+0xBA  SZO        APPLES
+0xBB  SZO        ASK
+0xBC  SZO        AZ
+0xBD  SZO        BASIC
+0xBE  SZO        BESZELEK
+0xBF  SZO        BOX
+0xC0  SZO        BY
+0xC1  SZO        BYE
+0xC2  SZO        CHAT
+0xC3  SZO        CLOUDS
+0xC4  SZO        COMPUTER
+0xC5  SZO        COUNT
+0xC6  SZO        CSAK
+0xC7  SZO        CSINAL
+0xC8  SZO        DAY
+0xC9  SZO        DEMO
+0xCA  SZO        DRAWING
+0xCB  SZO        DREAM
+0xCC  SZO        DREAMS
+0xCD  SZO        DRIVES
+0xCE  SZO        EDIT
+0xCF  SZO        EGY
+0xD0  SZO        ERASE
+0xD1  SZO        FAR
+0xD2  SZO        FAST
+0xD3  SZO        FECSKE
+0xD4  SZO        FEEL
+0xD5  SZO        FINE
+0xD6  SZO        FIVE
+0xD7  SZO        FUN
+0xD8  SZO        GENIUS
+0xD9  SZO        GIVE
+0xDA  SZO        GLM
+0xDB  SZO        GO
+0xDC  SZO        GOTO
+0xDD  SZO        GREAT
+0xDE  SZO        LATER
+0xDF  SZO        LIKES
+0xE0  SZO        LINE
+0xE1  SZO        LINES
+0xE2  SZO        MATTER
+0xE3  SZO        MODEL
+0xE4  SZO        MORNING
+0xE5  SZO        MUSIC
+0xE6  SZO        NEM
+0xE7  SZO        NYARAT
+0xE8  SZO        OR
+0xE9  SZO        PC
+0xEA  SZO        PLEASE
+0xEB  SZO        PRINT
+0xEC  SZO        REM
+0xED  SZO        REST
+0xEE  SZO        ROOM
+0xEF  SZO        SAFIZX810GMAIL.COM
 
-szándéktábla (18 bejegyzés, tartalék terület):
+szándéktábla (23 bejegyzés, tartalék terület):
   WHO+ARE+YOU                  → slot  0 (pioco)
-  WHO+MADE                     → slot 25 (creator)
-  WHO+BUILT                    → slot 25 (creator)
-  WHO+IS+SAFAR                 → slot 26 (safar)
-  WHO+SANDOR                   → slot 26 (safar)
-  SPEAK+GERMAN                 → slot 27 (english)
-  SPEAK+FRENCH                 → slot 27 (english)
-  SPEAK+HUNGARIAN              → slot 27 (english)
-  SPEAK+SPANISH                → slot 27 (english)
-  SPEAK+ITALIAN                → slot 27 (english)
-  SPEAK+LANGUAGE               → slot 27 (english)
-  HAHA                         → slot 28 (hahaha)
-  :)                           → slot 28 (hahaha)
-  WOW                          → slot 29 (wow)
-  :O                           → slot 29 (wow)
-  NOOO                         → slot 30 (nooo)
-  :(                           → slot 30 (nooo)
-  ONE+SWALLOW                  → slot 31 (proverb)
+  WHO+MADE                     → slot 21 (creator)
+  WHO+BUILT                    → slot 21 (creator)
+  WHO+IS+SAFAR                 → slot 22 (safar)
+  WHO+SANDOR                   → slot 22 (safar)
+  SPEAK+GERMAN                 → slot 23 (english)
+  SPEAK+FRENCH                 → slot 23 (english)
+  SPEAK+HUNGARIAN              → slot 23 (english)
+  SPEAK+SPANISH                → slot 23 (english)
+  SPEAK+ITALIAN                → slot 23 (english)
+  SPEAK+LANGUAGE               → slot 23 (english)
+  HAHA                         → slot 29 (hahaha)
+  :)                           → slot 29 (hahaha)
+  WOW                          → slot 30 (wow)
+  :O                           → slot 30 (wow)
+  NOOO                         → slot 31 (nooo)
+  :(                           → slot 31 (nooo)
+  ONE+SWALLOW                  → slot 25 (proverb)
+  KI+KESZITETT                 → slot 21 (creator)
+  KI+CSINALTA                  → slot 21 (creator)
+  KI+SAFAR                     → slot 22 (safar)
+  EMAIL                        → slot 24 (email)
+  BESZEL+MAGYARUL              → slot 23 (english)

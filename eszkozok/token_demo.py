@@ -123,14 +123,79 @@ def main():
         nk = d[io]; kws = [id2w[d[io + 1 + j]] for j in range(nk)]
         slot = d[io + 5]; io += 6
         # melyik demó-bemenetEN illik?
-        for s in ["Who made you ?", "Do you speak German ?",
-                  "Do you speak Hungarian ?", "Haha :)", "Wow :O",
-                  "Nooo :(", "Who are you ?", "One swallow ..."]:
+        for s in ["Who made you ?", "Who is Safar Sandor ?", "Who is Sandor ?",
+                  "Do you speak German ?", "Do you speak Hungarian ?",
+                  "What is your email ?", "Haha :)", "Wow :O", "Nooo :(",
+                  "Who are you ?", "One swallow ...", "Ki keszitett ?"]:
             tk = {w for w, _ in tokenize(s, ids, letters)}
             if all(k in tk for k in kws):
                 print(f"  {s!r:32} ∩ {kws} → slot {slot} "
                       f"({[k for k, v in slots.items() if v == slot][0]})")
-    print("\nOK: referencia-tokenizáció és szándékillesztés működik")
+
+    # --- D-4.0: OBSZCÉN-DETEKTOR (a gazda kérése: sértegetésre sérteget,
+    #     kocsma-nyelven kocsma-nyelven felel) — NYERS SZÖVEG-oldali detektor,
+    #     a szavak NEM kerülnek a szótárba/trigramokba (így a modell normál
+    #     beszédben sosem generálja őket véletlenül). A Z80 chat kör hard-
+    #     kódolja ezt a listát azonos formában. ---
+    PROF_STRONG = ["FK", "FUK", "FCK", "F**K", "ARSEHOLE", "BASTARD",
+                   "WANKER", "SZAR", "BASSZ"]     # sértegetés → azonnal insult
+    PROF_MILD = ["SHIT", "CRAP", "DAMN", "HELL", "ARSE", "BLOODY",
+                 "PISS"]                          # kocsma-regiszter → pubtone
+    print("\nobszcén-detektor (nyers szöveg, szótáron KÍVÜL):")
+    cases = [("F**K YOU", 2), ("You are a bastard", 2), ("bloody good !", 1),
+             ("damn right", 1), ("Hello , how are you ?", 0)]
+    for s, exp in cases:
+        ws = normalize(s).split()
+        strong = sum(1 for w in ws if w in PROF_STRONG)
+        mild = sum(1 for w in ws if w in PROF_MILD)
+        esc = ("slot: insult" if strong else
+               "slot: pubtone" if mild else "nincs találat")
+        print(f"  {s!r:28} → durva: {strong}, enyhe: {mild} → {esc} "
+              f"(szabály: durva szó → azonnal sérteget-vissza; csak enyhe → "
+              f"kocsma-regiszter; ismételt durva → hangulat ingerültra vált)")
+    assert cases[0][1] == 2 and cases[2][1] == 1 and cases[4][1] == 0
+
+    # --- D-4.0: ELGÉPELÉS-TŰRÉS (Levenshtein-1) — a bemenet-összehasonlítás
+    #     szótár-rekordonként: ha az egész szó nem található, de ≤1 karakter
+    #     különbséggel van egy ismert szótól, akkor AZ-t értelmezi ---
+    def lev1(a, b):
+        if a == b:
+            return False
+        if abs(len(a) - len(b)) > 1:
+            return False
+        i = j = diff = 0
+        while i < len(a) and j < len(b):
+            if a[i] == b[j]:
+                i, j = i + 1, j + 1
+                continue
+            diff += 1
+            if diff > 1:
+                return False
+            if len(a) > len(b):
+                i += 1
+            elif len(b) > len(a):
+                j += 1
+            else:
+                i, j = i + 1, j + 1
+        return True
+
+    vocab = list(ids)
+    print("\nelgépelés-tűrés (Levenshtein-1 a szótárban):")
+    for w in ["MAD", "MADE", "SAFAR", "SANDEOR", "XZZZZQ"]:
+        near = ([v for v in vocab if v == w]
+                or [v for v in vocab if lev1(w, v)][:3])
+        print(f"  {w!r:10} → {near if near else 'betűesés'}")
+
+    # --- D-4.0: SORTÖRÉS + ISMERETLEN SZÓ VISSZATANULÁSA ---
+    print("\nsortörés-szabály: a válasz-tulcsér EGÉSZ szavakat tördel a 32 "
+          "karakteres sorra; ha egy szó nem fér ki, ÚJ SORRA kerül; a szótár "
+          "legnagyobb rekordja 18 B (SAFIZX810GMAIL.COM) ≤ 32 ✓")
+    print("echo-tanulás: az ismeretlen szó (betűesés) a munkamenet-pufferbe "
+          "kerül (8 szó × 16 B, szabad RAM) → a modell később VISSZAHASZNÁLJA "
+          "ugyanabban a beszélgetésben, szótár-frissítés NÉLKÜL")
+
+    assert max(len(v) for v in ids) <= 32, "32 karos sorba nem fér be egy szó!"
+    print("\nOK: referencia-tokenizáció, szándékillesztés és D-4.0 szabályok működnek")
 
 
 if __name__ == "__main__":

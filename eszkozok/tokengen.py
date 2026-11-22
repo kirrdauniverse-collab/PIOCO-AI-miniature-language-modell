@@ -50,7 +50,8 @@ FORCE = ["WHO", "MADE", "BUILT", "SAFAR", "SANDOR", "QWEN", "SPEAK", "ONLY",
          "SWALLOW", "SUMMER", "MAKE", "BUS", "DRIVER", "WRITER",
          "ASTRONOMER", "SORRY", "AGAIN", "FUNNY", "HAPPY", "SAD", "TRY",
          "SURPRISE", "GLAD", "UNDERSTAND",
-         "0", "1", "2", "3", "4", "5", "6", "8", "9"]
+         "0", "1", "2", "3", "4", "5", "6", "8", "9",
+         "KI", "KESZITETT", "CSINALTA", "EMAIL", "MAGYARUL", "BESZEL"]
 
 # Karakterszűrő: a ZX81-biztonságos ASCII készlet (0x20–0x5A — A-Z, számok, írásjelek)
 def safe_word(w):
@@ -128,7 +129,7 @@ def main():
     for w, i in tok2id.items():
         if i < 0xF0:
             recs[i] = w.encode("ascii")
-    assert all(len(v) <= 15 for v in recs.values()), "túl hosszú rekord (max 15 B)"
+    assert all(len(v) <= 18 for v in recs.values()), "túl hosszú rekord (max 18 B — SAFIZX810GMAIL.COM)"
     assert sorted(recs) == list(range(0x20, 0xF0)), \
         "rekord-ID-k nem folytonosak 0x20–0xEF közt (Z80-keresés feltétele)"
 
@@ -184,6 +185,11 @@ def main():
         (["NOOO"], "nooo"),
         ([":("], "nooo"),
         (["ONE", "SWALLOW"], "proverb"),
+        (["KI", "KESZITETT"], "creator"),
+        (["KI", "CSINALTA"], "creator"),
+        (["KI", "SAFAR"], "safar"),
+        (["EMAIL"], "email"),
+        (["BESZEL", "MAGYARUL"], "english"),
     ]
     ioff = RECS_AREA + LETTERS_AREA + TRIG_AREA       # 2160
     out[ioff] = len(INTENTS); ioff += 1

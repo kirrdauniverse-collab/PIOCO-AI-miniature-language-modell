@@ -638,7 +638,13 @@ class ZX81:
         self.kbd = [0x1F] * 8          # soronként aktív-alacsony oszlopmaszk
         self.keys_pressed = 0
         self.next_nmi = LINE_T
-        self.nmi_enabled = True        # FD-port megfigyeléséig mindig be
+        self.nmi_enabled = False       # D-4.0: reset után a valódi ULA NMI-kapuja
+                                       # ZÁRVA — a ROM START rutinja OUT(FD),0-gyal
+                                       # kapcsolja KI (biztos, ami biztos), és csak
+                                       # SLOW-ra váltáskor OUT(FD),0x80-gyal BE.
+                                       # Resetkor BE-állással az első NMI-k a
+                                       # RAM-CHECK közben SP=0-val a ROM-ba tolják
+                                       # az initet — pont az "azonnali restart".
         self.poke_guard = []
         self.cpu.port_in = self.pin
         self.cpu.port_out = self.pout
@@ -679,6 +685,7 @@ class ZX81:
         c.halted = False
         c.t = 0
         self.next_nmi = LINE_T
+        self.nmi_enabled = False       # D-4.0: reset → NMI-kapu zárva (l. __init__)
 
     def tick(self, duration):
         """`duration` T-állapotnyi futás a JELENLEGI időponttól (relatív)."""
@@ -701,16 +708,39 @@ class ZX81:
                 self.pc_ring.append(pc0)
                 if len(self.pc_ring) > 48:
                     self.pc_ring.pop(0)
+                if pc0 == 0x0044:
+                    # D-4.0: a ZX81 videó-trükk (0041 LD R,A / 0043 EI /
+                    # 0044 JP (HL)) — a valódi gépen az ULA ciklus-csenése
+                    # (contended display line) miatt a kijelző-bájtok
+                    # "végrehajtása" láthatatlan, és soronként a handler
+                    # lép be újra. CPU-szinten a JP (HL)-t NEM hajtjuk végre:
+                    # egy soridő elteltével a sor-NMI újra belép (0x0066),
+                    # a ROM saját állapotgépe viszi tovább. Enélkül a JP (HL)
+                    # szó szerint végrehajtódik → wild PC → RST 38 → az init
+                    # összeomlik = az "azonnali restart" (a .P-út SLOW módban
+                    # fut, ezért a szalag-úton nem látszott).
+                    if self.nmi_enabled:
+                        c.t += LINE_T
+                        self.next_nmi = c.t + LINE_T
+                        c.nmi()
+                        c.halted = False
+                        continue
+                    # kapu zárva (a display-ciklusban elvileg nem fordul
+                    # elő): normál lépés
                 c.step()
                 if c.nmis % 64 == 0:
                     self.pc_hist[pc0 >> 8] += 1
             if c.t >= self.next_nmi:
                 self.next_nmi = c.t + LINE_T
                 if self.nmi_enabled:
-                    c.nmi()          # FD bit0=1: sorszámláló-NMI (képkockák között)
-                else:
-                    c.int38()        # FD bit0=0: megjelenítési fázis — soralapú INT
-                c.halted = False
+                    c.nmi()          # FD bit7=1: soralapú NMI — a valódi ULA
+                                     # kijelző-generáló viselkedése
+                    c.halted = False
+                # FD bit7=0 (kapu zárva): a valódi ZX81 ULA SEMMILYEN
+                # megszakítást nem generál (nincs soralapú INT!). A korábbi
+                # int38()-csalás mesterséges megszakításvihar volt, ami a ROM
+                # IM1 utáni initjét döngette szét 0x0038-on keresztül — ez volt
+                # az "azonnali restart" gyökere (D-4.0).
 
     def press(self, row, col, frames):
         """row: 0-7 (A8..A15), col: 0-4 (bit0=bal) — lenyomva `frames` képkockán át."""
@@ -770,7 +800,7 @@ def main():
     ap.add_argument("--p", default=None)
     ap.add_argument("--keys", default="RUN")
     ap.add_argument("--max-t", type=int, default=40_000_000)
-    ap.add_argument("--boot-frames", type=int, default=20)
+    ap.add_argument("--boot-frames", type=int, default=450)   # a valódi RAM-CHECK ~370 képkocka (~7 s)
     ap.add_argument("--frames", type=int, default=12)
     ap.add_argument("--trace", action="store_true")
     ap.add_argument("--watch", default="", help="vesszős tizenhatos címek: regiszter-rögzítés az első áthaladáskor")
