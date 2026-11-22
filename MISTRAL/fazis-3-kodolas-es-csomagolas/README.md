@@ -1,7 +1,7 @@
 # 3. fázis — Kódolás és csomagolás (MISTRAL munkaterület)
 
-**Állapot:** v2.5 — **single-image kazetta** (valódi ROM SAVE-kép, ROM LOAD ""-val betölthető),
-minden teszt zöld (`szalag_teszt`, `kazetta_teszt`, `ellenorzes`).
+**Állapot:** v2.6c — **single-image kazetta** (valódi ROM SAVE-kép, ROM LOAD ""-val betölthető),
+minden teszt zöld (`szalag_teszt`, `kazetta_teszt`, `ellenorzes`, `beszelgetes_teszt`).
 A v2.5 elrendezés a C/6 hiba okát szüntette meg (l. `t81_build.py` fejléc):
 a ZX81 ROM LOAD rutinja csak egyetlen összefüggő képet tud betölteni
 (0x4009-től a szalagon lévő E_LINE-ig, nálunk 0x7E00-ig).
@@ -12,7 +12,7 @@ a ZX81 ROM LOAD rutinja csak egyetlen összefüggő képet tud betölteni
 
 | Elem | Fájl | Állapot |
 | --- | --- | --- |
-| Z80 motor (forrás) | `motor/pico.asm` | összeáll, **4 003 bájt** (v2.5) (zóna: 0x4700–0x56FF = 4 096 B) |
+| Z80 motor (forrás) | `motor/pico.asm` | összeáll, **4 141 bájt** (v2.6c) (zóna: 0x4700–0x57FF = 4 352 B) |
 | saját Z80-összeállító | `eszkozok/z80asm.py` | kétmenetes; a motor készletén fut (SBC/ADC HL,rr; RET cc javítva) |
 | tokenizáló-tanító | `eszkozok/tokenizer_train.py` | szövegből szótár-blob (111 token / 740 B + bigramm 550 B) |
 | tudáscsomag-fordító | `eszkozok/kb_compile.py` | kulcsszó+tény sorok → bináris lánc |
@@ -106,31 +106,42 @@ tudomány, gasztronómia, egészség, szórakozás, retro korszak/technológia,
 jövőkutatás, tanulás, hobbi, csillagászat, irodalom, filmek, hírességek,
 művészet, munka, UFO — mindegyik `tudas/*.txt` forrásból `kb_compile.py`-val.
 
-## v2.6b allas (2026-11-22, minden hitelt elnyo javitas gepekkel igazolva)
+## v2.6c állás — WHO MADE-válasz kiírva, beszélgetés-végponti teszt zöld
 
-**Javult:** a "WHO MADE" ENTER utani vad-ugras (fagy) oka megtalalva es
-javitva: a TOKSTRIP rutin ketszer PUSHolta HL-t (a 'S'-ellenorzes elott
-is), de csak egyszer kotrodott ki — a zaro RET a veremrol a mentett DE
-ertekeket vett fel (TOKBUF-framework), es oda ugrott (debug17: RET@0x4a85
--> 0x684b = TOKBUF+3). Az uj TOKSTRIP egyetlen PUSH/POP parral es
-SBC-s szo-elemzessel mukodik; a zazolas MEGBIZHATOAN javitott (a
-fennt maga nyiltan bemutatja: tokenizalas Drawy valtozassal, majd a
-REASON/generator fobszag).
+**Ez a kör négy, egymáshoz kapcsolódó mutató-logikai hibát tárt fel és javított** —
+mindnek a gyökere az volt, hogy a kereső rutinok (KWDEQ/KWGET/KWGTAB) a
+regisztereket a hívás elején megőrzik (PUSH/POP), a hívó kódja viszont úgy
+íródott, mintha a kereső **előre léptetné** a bejegyzés-mutatót:
 
-**Mukodik (geppel igazolva):** 8 soros KEYTBL + ENTER + SHIFT, boot
-splash + teljes boot-abrak, PROFILELOOD, joval lehet gepelni, minden
-sor a BLINE-ba kerul, a bongeszes REASON/TOKENIZE-lan rendben el.
+1. **REASON** (intent-kereső): a RE_NOM csak 2× INC DE lépéssel haladt tovább,
+   ezért a tábla második bejegyzés után lezáró 0-ba botlott, és a 13 keyword
+   (WHO, HAHA, DO…) közül csak kettő ment át — így a "WHO MADE" intentje
+   sosem lett 2 (GEN_KB). A javítás: 0-szken az aktuális bejegyzés végéig.
+2. **KBWALK/KW_H**: találatnál egyetlen INC HL után PRTLN — a kulcsszó
+   második betűjétől írta volna a szöveget ("HO MADE"). A javítás: 0-szken.
+3. **FACTSET/FS_NX** és **KWGTAB/KGT_S**: dupla INC → bejegyzés-szken
+   elcsúszás (a "WHAT DAY IS IT TODAY" felismerést tette volna tönkre).
+4. **BGWORD/DICTAPP**: a token-ID elvész (LD A,(RESPW) felülírja a token
+   után), a DICTAPP a 0-indexet kereste → üres RESP. A javítás egyetlen
+   utasítás: LD A,(BGFROM) a CALL előtt.
 
-**Nyilt hiba (a kovetkezo munkanap targya):** a vietos "gondolkodo"
-generator letrehozta valasz kozottikon egy masik, ROM-billentyu-lanc
-kornyekeral eso derozas van (debug18: 0x14ac-RET a 0xc24b-re ugrik,
-a KEYZONES-ban levo [0x7ffC] szemetetol). A tokstrips javitas utan
-nyirtalan mar; a kesz tubkezes ellen a "gondolkodo" fazisban all.
+Plusz a **DERAIL #2** (a session eleji javítás, commitolva ezzel együtt):
+DICTLOOK verem-egyensúly — a találati ág a DL_CMP-keret 6 PUSH-ját bontja
+fel jó sorrendben, a DL_MISS a prologusz 3 PUSH-ját (BC/HL/DE sorrend).
 
-**A nyelvi 7 kerdes allasa (v2.6):** multiple alakok/past-tense-toredek,
-szamok szankent es szovegszerint egyarant (NUMVAL-Jul), HAHA/WOW/NOOO +
-:)/:(/:O hangulatjelek, HELP vs. ka fiado, "WHO MADE/WHO IS S. SAFAR"
-KB2-adatokkal ("Sandor Safar, with GLM's help." / "Bus driver,
-amateur writer and astronomer from Hungary."), DO/DO NOT/DOES/DOES
-NOT intent-alakok — mindegyik a beszelgetes-tesztben ellenorzott
-sor-korulmenyek kozott (reszlet-vesztesek a leriasban).
+Megjavítottuk továbbá az **ASC2ZX**-t: a KB2-válaszok vegyes betűesei a
+64 bájtos tábla mögé olvastak ("with GLM's help" → szemét). A kisbetűk most
+nagybetűre fordulnak, 32 alatti kód szóköz (a ZX81 egy betűkészletet ismer).
+
+**Igazolás (kazetta_teszt boothívásával, valós gombnyomásokkal):**
+WHO MADE → "SANDOR SAFAR, WITH GLM'S HELP", HAHA → "HAHA! GLAD",
+CATS → bigram-generált "CAT IS", DOES IT WORK → "YOU THE", WHAT TIME →
+"TIME IS 00:00", inverz YOU/PIOCO fejlécek, a D_FILE a beszélgetés alatt
+jogszerű (0x76-tiltás, 0xC0+ nincs). Mind a négy teszt PASS.
+
+**Kanonikus kazetta szinkron:** a repó-gyökér `kazetta/`-ban az új
+motor.bin (4 141 B) + PIOCO.T81 (15 921 B) megvan.
+
+**Nyitott (4. fázis):** a kreatív-kérdés vizsgálat ("what day" naptár-modul,
+IF/WOULD képzelet-sortervek), a felhasználói dátum-bekérés finomítása,
+és a generált válaszok minőségének javítása nagyobb corpus-indexelt.

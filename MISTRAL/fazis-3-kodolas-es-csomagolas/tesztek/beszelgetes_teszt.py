@@ -136,7 +136,7 @@ def kepernyo(sim):
             sor.append(mem[p])
             p += 1
         p += 1
-        sorok.append("".join(ellen.get(b, "_") for b in sor))
+        sorok.append("".join(ellen.get(b & 0x7F, "_") for b in sor))
     return "\n".join(sorok)
 
 
@@ -193,13 +193,13 @@ def main():
     # (a gepel maga is allitja: a BLINE ENTER elott "WHO MADE\0")
     sor = gepel(sim, "WHO MADE\n")
     assert sor.rstrip(b"\x00") == b"WHO MADE", f"gepel visszateres: {sor!r}"
-    varj_szovegre(sim, "Sandor Safar")
-    varj_szovegre(sim, "with GLM")
+    varj_szovegre(sim, "SANDOR SAFAR")
+    varj_szovegre(sim, "WITH GLM")
     print("OK: READLINE a BLINE-ba ir + WHO MADE -> Sandor Safar valasz")
 
     # ---- 2. HAHA -> hangulat valasz ----
     gepel(sim, "HAHA\n")
-    varj_szovegre(sim, "Haha! Glad")
+    varj_szovegre(sim, "HAHA! GLAD")
     print("OK: HAHA -> Haha! Glad.")
 
     # ---- 3. CATS -> 'S'-to-visszavonas (egy szo-token) ----

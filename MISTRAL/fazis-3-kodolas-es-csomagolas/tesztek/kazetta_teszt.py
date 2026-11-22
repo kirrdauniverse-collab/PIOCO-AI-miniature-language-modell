@@ -113,7 +113,7 @@ def rom_load(sim, szalag, kep):
 def asctab_zx(motor):
     idx = motor.find(bytes.fromhex("000b140d15131612"))
     assert idx >= 0, "ASCTAB nem talalhato a motor.bin-ben"
-    tab = motor[idx:idx + 128]
+    tab = motor[idx:idx + 64]   # csak a valos 64 bajtos tabla (32..95)
     return tab   # ASCTAB[ord(c)-32] = a c karakter ZX81-kodja
 
 

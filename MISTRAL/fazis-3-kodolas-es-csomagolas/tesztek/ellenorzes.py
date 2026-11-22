@@ -1,7 +1,7 @@
 """PIOCO.T81 és motor-kimenet ellenőrzése (3. fázis füstvizsgálat).
 
 Ellenőrzi:
-  1. a motor bináris méretét (max. 4096 B — a MOTOR-zóna határa),
+  1. a motor bináris méretét (max. 4352 B — a MOTOR-zóna határa),
   2. a .T81 blokkok PI-mágnesjelét, cél- és méretmezőit,
   3. a XOR-ellenőrzőket,
   4. a PROFIL-zóna-védelmet (0x4100-0x41FF),
@@ -29,7 +29,7 @@ hibak = []
 def vizsgal_motor(bin_path):
     with open(bin_path, "rb") as f:
         data = f.read()
-    print(f"[MOTOR] {len(data)} bájt (max 4096)")
+    print(f"[MOTOR] {len(data)} bájt (max {MOTOR_ZONA_MAX})")
     if len(data) > MOTOR_ZONA_MAX:
         hibak.append(f"motor túl nagy: {len(data)} B")
     return data

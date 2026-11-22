@@ -377,10 +377,18 @@ PI_P:   CALL PUTA
         INC HL
         JR PRTINV
 
-; ASC2ZX: ASCII(32..127) -> ZX81-kód táblázattal
+; ASC2ZX: ASCII -> ZX81-kód táblázattal; 32 alatt szóköz, kisbetű
+; nagybetüre hozva (a ZX81 egy betűkészletet ismer), így a kód
+; mindig a 64 bájtos ASCTAB-on belül marad
 ASC2ZX:
         PUSH DE
         PUSH HL
+        CP 0x20
+        JR C,ASZ_SP
+        CP 0x61
+        JR C,ASZ_OK
+        SUB 0x20
+ASZ_OK:
         LD DE,ASCTAB
         SUB 32
         LD L,A
@@ -390,6 +398,9 @@ ASC2ZX:
         POP HL
         POP DE
         RET
+ASZ_SP:
+        LD A,0x20
+        JR ASZ_OK
 
 ; ================= VÁRAKOZÁS ÉS BEVITEL =================
 WAITKEY:
@@ -830,9 +841,12 @@ DL_C1:
         DEC C
         JR NZ,DL_C1
         LD A,(DE)               ; DE = id-bájt -> token-ID
-        POP BC
+        POP BC                  ; DL_CMP-keret visszabontása
         POP DE
         POP HL
+        POP BC                  ; prologus-keret visszabontása
+        POP HL
+        POP DE
         LD B,A
         RET
 DL_NM:
@@ -841,9 +855,9 @@ DL_NM:
         POP HL
         JR DL_STEP
 DL_MISS:
-        POP BC
-        POP DE
+        POP BC                  ; prologus-keret (PUSH DE,HL,BC)
         POP HL
+        POP DE
         LD B,0
         RET
 
@@ -882,13 +896,20 @@ RE_L:
         POP DE
         OR A
         JR Z,RE_NOM
-        INC DE                  ; a lezáró 0-n túl: intent bájt
-        LD A,(DE)
+RE_YES:
+        LD A,(DE)               ; bejar a lezaro 0-ig
+        INC DE
+        OR A
+        JR NZ,RE_YES
+        LD A,(DE)               ; intent bajt
         LD (INTENT),A
         RET
 RE_NOM:
-        INC DE                  ; lezáró 0
-        INC DE                  ; intent bájt
+        LD A,(DE)               ; a KWDEQ visszaallitja a bejegyzes
+        INC DE                  ; elejere: bejaras a lezaro 0-ig
+        OR A
+        JR NZ,RE_NOM
+        INC DE                  ; intent bajt
         JR RE_L
 
 ; KWDEQ: DE = kulcsszó(0-lezárva); HL = BLINE; A = 1 egyezés, 0 nem
@@ -1057,7 +1078,10 @@ KW_S2:
         POP BC
         JR KW_L
 KW_H:
-        INC HL
+        LD A,(HL)               ; a KWDEQ a bejegyzes elejere allitja
+        INC HL                  ; vissza: bejaras a lezaro 0-ig
+        OR A
+        JR NZ,KW_H
         CALL PRTLN
         CALL NEWLINE
         POP DE
@@ -1441,7 +1465,8 @@ BGWC_1: POP BC
         SUB RESP
         CP 30
         JR NC,BGW_E
-        CALL DICTAPP
+        LD A,(BGFROM)           ; a token-ID a BGFROM-buli (az A-ba
+        CALL DICTAPP            ; a hosszszamitas felul irta)
 BGW_E:
         POP AF
         POP BC
@@ -2032,8 +2057,7 @@ FS_S3:  LD A,(HL)
         INC HL
         OR A
         JR NZ,FS_S3
-        INC HL
-        INC HL
+        INC HL                  ; a bitkod-on at csak egyszer
         POP BC
         JR FS_L
 FS_0:   LD HL,BLINE
@@ -2079,8 +2103,7 @@ KGT_S:  LD A,(DE)
         INC DE
         OR A
         JR NZ,KGT_S
-        INC DE
-        JR KGT_L
+        JR KGT_L                ; az eggyel tobb INC a szot tornolta volna
 KGT_Y:  POP HL
         POP DE
         POP BC
