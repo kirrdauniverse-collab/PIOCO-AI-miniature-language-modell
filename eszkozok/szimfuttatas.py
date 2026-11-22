@@ -145,7 +145,7 @@ def main():
         base = DFILE + row * 33
         lines.append("|" + "".join(zx_to_txt(m[base + col]) for col in range(32)) + "|")
     lines.append("+" + "-" * 32 + "+")
-    art = "PIOCO AI 0.2 — D_FILE a Z80-szimulációs végpont-teszt után\n" + "\n".join(lines) + "\n"
+    art = "PIOCO AI 0.3 — D_FILE a Z80-szimulációs végpont-teszt után\n" + "\n".join(lines) + "\n"
     with open(SCREENSHOT, "w", encoding="utf-8") as f:
         f.write(art)
     print(art)

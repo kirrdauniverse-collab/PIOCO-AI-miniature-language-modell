@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""PIOCO AI — pgen.py: REZIDENS .P terjesztési fájl (pioco-0.2.p) generálása.
+"""PIOCO AI — pgen.py: REZIDENS .P terjesztési fájl (pioco-0.3.p) generálása.
 
 v2 — a C/6-os hibajelentés (valódi emulátorból) utáni áttervezés:
   - a `RAND USR 16514` sor számformátuma a zmakebas forrása szerint készül:
@@ -18,8 +18,8 @@ zmakebas ZX81 mód forrásakódjából):
   .P = [116 B (0x74) sysvars a 0x4009-től][program][adatterület]
        [25×0x76 összezsugorított képernyő][0x80 VARS-záró]
 Sorformátum: [sorszám BE:2][hossz LE:2][törzs…0x76] (a hossz a 0x76-tal).
-A repóbeli kimenet neve marad pioco-0.2.p; a felhasználónak átadott
-másolat a pioco-by-GLM-0.1.p nevet viseli (névkonvenció, 2026-11-21).
+A repóbeli kimenet neve marad pioco-0.3.p; a felhasználónak átadott
+másolat a pioco-by-GLM-0.3.p nevet viseli (névkonvenció, 2026-11-21).
 """
 import os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -27,7 +27,11 @@ from z80asm import assemble
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ADAT = os.path.join(BASE, "kazetta", "adat")
-OUT = os.path.join(BASE, "kazetta", "pioco-0.2.p")
+OUT = os.path.join(BASE, "kazetta", "pioco-0.3.p")
+XORKEY = 0x40    # D-3.9: a hordozó ezzel XOR-olt bájtjai utaznak a .P-ben —
+                 # a 0x80 a .P formátumban a VARS-záró bájt, tehát a fájltest
+                 # egyetlen 0x80-at sem tartalmazhat; a kulcs előképe
+                 # (0x80^XORKEY) nem fordulhat elő a nyers hordozóban (kapu)
 
 PROG = 0x407D          # programterület kezdete (REM-törzs: 0x4082 = 16514)
 REM, RAND, USR, NUMMARK = 0xEA, 0xF9, 0xD4, 0x7E
@@ -95,7 +99,10 @@ def main():
     else:
         raise AssertionError("az adatkezdő-cím 0x76-mentesítése 256 lépésben sem sikerült")
     data_start, d_file = ds, ds + len(motor0) + len(szotar) + len(alapmag) + len(pack)
-    data = motor0 + szotar + alapmag + pack
+    raw = motor0 + szotar + alapmag + pack
+    assert (0x80 ^ XORKEY) not in raw, \
+        "D-3.9: a XOR-kulcs előképe előfordul a nyers hordozóban — másik kulcs kell"
+    data = bytes(x ^ XORKEY for x in raw)   # 0x80-mentes hordozó a fájlban
     prog = line(1, bytes([REM]) + bytes(b)) + line(2, l2body)
     prog_len = len(prog)
     assert prog_len == len(boot) + 6 + 18, "programhossz-eltérés"
@@ -144,12 +151,22 @@ def main():
     for name, src, blob in [("motor", data_start, motor0), ("szótár", data_start + len(motor0), szotar),
                             ("alapmag", data_start + len(motor0) + len(szotar), alapmag),
                             ("pack", data_start + len(motor0) + len(szotar) + len(alapmag), pack)]:
-        assert out[foff(src):foff(src) + len(blob)] == blob, f"{name}: az adat nem a kiszámított címen"
+        assert out[foff(src):foff(src) + len(blob)] == bytes(x ^ XORKEY for x in blob), \
+            f"{name}: a kódolt adat nem a kiszámított címen"
+    assert bytes(x ^ XORKEY for x in out[foff(data_start):foff(data_start) + len(raw)]) == raw, \
+        "D-3.9: a hordozó vissza-XOR-olása nem a nyers adatot adja"
     assert out[-26:] == b"\x76" * 25 + b"\x80", "záró (képernyő + 0x80) eltérés"
+    # D-3.9 KAPU: a .P fájltestben pontosan egy 0x80 van — a legvégén (VARS-záró).
+    # (A .P formátumspecifikáció a fájlt az első 0x80-nál zárja le: ha a testben
+    # 0x80 ülne, a spec-hű betöltők csonkolnák a fájlt — pontosan a C/F080 hiba.)
+    assert out.count(0x80) == 1 and out[-1] == 0x80, \
+        "D-3.9 KAPU: 0x80 bájt a fájltestben!"
     print(f"OK: {OUT} ({len(out)} B)")
     print(f"  program {prog_len} B @0x{PROG:04X} (1 REM {len(b)} B + 2 RAND USR 16514), "
           f"pad {k} B, adat {len(data)} B @0x{data_start:04X}, D_FILE=0x{d_file:04X}")
-    print(f"  REM-törzs 0x76-mentes; a 2. sor száma: {' '.join(f'{x:02X}' for x in digits + numtok)}")
+    print(f"  REM-törzs 0x76-mentes; hordozó XOR 0x{XORKEY:02X}-kódolva; "
+          f"0x80-szám: {out.count(0x80)} (a záró); a 2. sor száma: "
+          f"{' '.join(f'{x:02X}' for x in digits + numtok)}")
 
 if __name__ == "__main__":
     main()

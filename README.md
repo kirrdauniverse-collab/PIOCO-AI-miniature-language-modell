@@ -3,7 +3,7 @@
 > Miniatűr, **valóban generáló** AI nyelvi modell a Sinclair ZX81-hez (16 KB RAM) —
 > egyetlen összefüggő, több betöltési sávot tartalmazó **.T81** kazettafájlban.
 
-**Állapot:** 🟢 **3. fázis — KIPRÓBÁLHATÓ VÁLTOZAT v0.2: `pioco-by-GLM-0.2.p`** (a C/F080 + száguldozó-pixelek javítása: D-3.8 PERSIST a ROM veremzónájáról 0x7E00-ra költözött — a hibát a valódi ROM Logan–O'Hara listája alapján találtuk meg) · prototípus-nyelv: **angol** (D-3.2) · PERSIST: 0x7E00 (D-3.8) · **névkonvenció: minden átadott fájl `pioco-by-GLM-<verzió>…`** (2026-11-21-től)
+**Állapot:** 🟢 **3. fázis — KIPRÓBÁLHATÓ VÁLTOZAT v0.3: `pioco-by-GLM-0.3.p` (a C/F080 valódi oka: a .P formátum 0x80-terminátora — a szótárban ülő legitim tokinkód levágta a betöltést 56%-nál; D-3.9: a hordozó XOR 0x40-kódolása + gyártási kapu)
 
 ## Mi ez?
 
@@ -38,7 +38,7 @@ ingerlésben és vitában is saját megfogalmazással, több körön át emléke
 | --- | --- | --- |
 | 1 | Ötlet és koncepció | ✅ kész (2026-11-21) |
 | 2 | Tervezés, működés és dizájn — végleges memóriatérkép, bitmezők, sávformátum, képernyők, vezérlők, Agent-parancsok | ✅ kész (2026-11-21) |
-| 3 | Kódolás és csomagolás — Z80 motor, PC-s eszközök, .T81 összeállítás | 🔵 5. szelet kész (2026-11-21): D-3.8 PERSIST-költöztetés a ROM veremzónájáról (valódi ROM + Logan–O'Hara lista alapján), romsim.py ROM-szintű virtuális gép; következik: ROM-szintű zöld futás, INPUT + Agent-kör |
+| 3 | Kódolás és csomagolás — Z80 motor, PC-s eszközök, .T81 összeállítás | 🔵 6. szelet kész (2026-11-21): D-3.9 XOR-kódolt hordozó + 0x80-kapu (a C/F080 gyökere); korábban D-3.8 PERSIST-költöztetés + romsim.py; következik: ROM-szintű zöld futás, INPUT + Agent-kör |
 | 4 | Tudásbázis, tréning és tesztelés — alaptudás + témacsomagok, emulátoros ellenőrzés | ⬜ |
 
 ## Repó struktúra

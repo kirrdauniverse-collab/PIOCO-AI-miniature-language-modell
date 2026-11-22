@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""PIOCO AI — pfuttatas.py: VIRTUÁLIS EMULÁTOR-TESZT a pioco-0.2.p fájlon.
+"""PIOCO AI — pfuttatas.py: VIRTUÁLIS EMULÁTOR-TESZT a pioco-0.3.p fájlon.
 
 v2 — a v1 teszt az elavult (REM-hordozós, 6 soros) felépítést nézte;
 az új, C/6-javított elrendezést vizsgálja:
@@ -23,11 +23,12 @@ from szimfuttatas import a2z, zx_to_txt
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ADAT = os.path.join(BASE, "kazetta", "adat")
-PFILE = os.path.join(BASE, "kazetta", "pioco-0.2.p")
+PFILE = os.path.join(BASE, "kazetta", "pioco-0.3.p")
 SCREENSHOT = os.path.join(BASE, "kazetta", "kepernyokep_p.txt")
 
 DFILE = 0x4200
 PERSIST = 0x7E00   # D-3.8: a 0x7F00-ról költözött — a ROM verem/ERR_SP/NMI-mentések a RAM tetején élnek
+XORKEY = 0x40      # D-3.9: a hordozó kódolt bájtjainak kulcsa (l. pgen.py)
 
 def main():
     pf = open(PFILE, "rb").read()
@@ -71,19 +72,23 @@ def main():
           "a sorkar bájtonként egyezik a zmakebas referenciával")
 
     # --- 3. RESCOPY patchek: a források a betöltött adatra mutatnak ---
+    # D-3.9: a hordozó a .P-ben XOR 0x40-kódolt bájtokként utazik — a
+    # hordozó-pozíción a KÓDOLT, a végleges címeken (RESCOPY után) a NYERS
+    # bájtokat várjuk.
     off = lambda lbl: blab[lbl] - 0x4082
     src_mot = word(0x4082 + off("SRC_MOT") + 1)
     src_szo = word(0x4082 + off("SRC_SZO") + 1)
     src_alap = word(0x4082 + off("SRC_ALAP") + 1)
     src_pack = word(0x4082 + off("SRC_PACK") + 1)
-    assert bytes(m[src_mot:src_mot + len(motor0)]) == motor0, "SRC_MOT nem a motorra mutat"
-    assert bytes(m[src_szo:src_szo + len(szotar)]) == szotar, "SRC_SZO nem a szótárra mutat"
-    assert bytes(m[src_alap:src_alap + len(alapmag)]) == alapmag, "SRC_ALAP nem az alapmagra mutat"
-    assert bytes(m[src_pack:src_pack + 64]) == bytes(64), "SRC_PACK nem a packra mutat"
+    enc = lambda blob: bytes(x ^ XORKEY for x in blob)
+    assert bytes(m[src_mot:src_mot + len(motor0)]) == enc(motor0), "SRC_MOT nem a (kódolt) motorra mutat"
+    assert bytes(m[src_szo:src_szo + len(szotar)]) == enc(szotar), "SRC_SZO nem a (kódolt) szótárra mutat"
+    assert bytes(m[src_alap:src_alap + len(alapmag)]) == enc(alapmag), "SRC_ALAP nem a (kódolt) alapmagra mutat"
+    assert bytes(m[src_pack:src_pack + 64]) == enc(bytes(64)), "SRC_PACK nem a (kódolt) packra mutat"
     assert word(0x4082 + off("SRC_MOTN") + 1) == len(motor0), "SRC_MOTN hossz hibás"
     assert m[0x4082 + off("BOOTMODE")] == 1, "BOOTMODE nincs rezidensre állítva"
-    print(f"adatterület @0x{src_mot:04X}: motor/szótár/alapmag/pack a helyén; "
-          f"RESCOPY-források és BOOTMODE rendben")
+    print(f"adatterület @0x{src_mot:04X}: motor/szótár/alapmag/pack a helyén "
+          f"(XOR 0x{XORKEY:02X}-kódoltan); RESCOPY-források és BOOTMODE rendben")
 
     # --- 4. RUN/CLS utánzata: összezsugorított képernyő kifejtése ---
     hl = d_file
@@ -156,7 +161,7 @@ def main():
         base = DFILE + row * 33
         lines_out.append("|" + "".join(zx_to_txt(m[base + col]) for col in range(32)) + "|")
     lines_out.append("+" + "-" * 32 + "+")
-    art = ("PIOCO AI 0.2 — a pioco-by-GLM-0.2.p virtuális emulátor-futása után\n"
+    art = ("PIOCO AI 0.3 — a pioco-by-GLM-0.2.p virtuális emulátor-futása után\n"
            + "\n".join(lines_out) + "\n")
     with open(SCREENSHOT, "w", encoding="utf-8") as f:
         f.write(art)

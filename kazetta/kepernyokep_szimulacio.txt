@@ -1,4 +1,4 @@
-PIOCO AI 0.2 — D_FILE a Z80-szimulációs végpont-teszt után
+PIOCO AI 0.3 — D_FILE a Z80-szimulációs végpont-teszt után
 +--------------------------------+
 |                                |
 |                                |

@@ -36,6 +36,11 @@
 
 INBYTE  EQU 0x034C        ; ROM: bájt a szalagról → C
 DFILE   EQU 0x4200
+XORKEY  EQU 0x40           ; D-3.9: a .P adathordozó ezzel XOR-olt bájtokként
+                          ; utazik — a 0x80 a .P fájlformátumban a VARS-záró,
+                          ; ezért a fájltestben egyetlen 0x80 sem szerepelhet
+                          ; (a pgen.py kapuja érvényesíti); a szalag-mód
+                          ; blokkjai nyersen utaznak (nincs 0x80-korlát)
 PERSIST EQU 0x7E00        ; D-3.8: a 0x7F00-ról ide költözött — a ROM listája
                           ; szerint a gép vereme (SP=0x7FFE), az ERR_SP
                           ; (0x7FFC) és a NMI képkockánkénti mentései
@@ -246,6 +251,7 @@ SRC_MOTN: LD BC,0x0000         ; @PGMOTN@ — motor0.bin hossza
         RET
 
 BLKCPY: LD A,(HL)
+        XOR XORKEY             ; D-3.9: hordozó-visszakódolás másolás közben
         LD (DE),A
         INC HL
         INC DE
