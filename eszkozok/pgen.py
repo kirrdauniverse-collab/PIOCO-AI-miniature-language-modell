@@ -28,10 +28,16 @@ from z80asm import assemble
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ADAT = os.path.join(BASE, "kazetta", "adat")
 OUT = os.path.join(BASE, "kazetta", "pioco-0.3.p")
-XORKEY = 0x40    # D-3.9: a hordozó ezzel XOR-olt bájtjai utaznak a .P-ben —
-                 # a 0x80 a .P formátumban a VARS-záró bájt, tehát a fájltest
-                 # egyetlen 0x80-at sem tartalmazhat; a kulcs előképe
-                 # (0x80^XORKEY) nem fordulhat elő a nyers hordozóban (kapu)
+# D-3.9: a hordozó XOR-kulcsa a motor/boot.asm-ből olvasva (egyetlen forrás —
+# a BLKCPY kódja és ez a generátor nem csúszhat szét). A 0x80 a .P formátumban
+# a VARS-záró bájt, ezért a fájltest egyetlen 0x80-at sem tartalmazhat; a
+# kulcs előképe (0x80^XORKEY) nem fordulhat elő a nyers hordozóban (kapu).
+import re as _re
+BOOT_ASM = os.path.join(BASE, "motor", "boot.asm")
+_m = _re.search(r"^XORKEY\s+EQU\s+(0x[0-9A-Fa-f]+)",
+                open(BOOT_ASM, encoding="utf-8").read(), _re.M)
+assert _m, "boot.asm: 'XORKEY EQU 0x..' sor hiányzik"
+XORKEY = int(_m.group(1), 16)
 
 PROG = 0x407D          # programterület kezdete (REM-törzs: 0x4082 = 16514)
 REM, RAND, USR, NUMMARK = 0xEA, 0xF9, 0xD4, 0x7E
@@ -100,8 +106,12 @@ def main():
         raise AssertionError("az adatkezdő-cím 0x76-mentesítése 256 lépésben sem sikerült")
     data_start, d_file = ds, ds + len(motor0) + len(szotar) + len(alapmag) + len(pack)
     raw = motor0 + szotar + alapmag + pack
-    assert (0x80 ^ XORKEY) not in raw, \
-        "D-3.9: a XOR-kulcs előképe előfordul a nyers hordozóban — másik kulcs kell"
+    if (0x80 ^ XORKEY) in raw:
+        valid = [K for K in range(1, 256) if (0x80 ^ K) not in raw]
+        raise AssertionError(
+            f"D-3.9: a boot.asm XORKEY (0x{XORKEY:02X}) előképe előfordul a nyers "
+            f"hordozóban — a motor/boot.asm 'XORKEY EQU' sorát írd át; érvényes "
+            f"kulcsok most pl.: {[hex(k) for k in valid[:8]]}")
     data = bytes(x ^ XORKEY for x in raw)   # 0x80-mentes hordozó a fájlban
     prog = line(1, bytes([REM]) + bytes(b)) + line(2, l2body)
     prog_len = len(prog)

@@ -131,3 +131,23 @@
 - **Kapuk és tesztek:** a pgen gyártás után elutasítja a fájlt, ha a testben bármely 0x80 ül (elvárt: pontosan egy, a legvégén, a VARS-záró); a pfuttatas a hordozó-pozíción a KÓDOLT, a végleges címeken a NYERS bájtokat ellenőrzi (a RESCOPY dekódolás bájthű); a spec-töltő szimuláció szerint az első 0x80-ra csonkolt fájl ≡ az egész fájl. Minden korábbi teszt zöld maradt (CRC 0xEC23).
 - **Kézbesítés:** `download/pioco-by-GLM-0.3.p` + használat + képernyőképek.
 - **Következő:** ROM-szintű zöld futás (romsim), INPUT + Agent-kör, .T81 multiload.
+
+## 2026-11-22 · 3. fázis, 7. szelet — a beszélgetés ADAT-rétege: nyelvtan, hangulat, szándék-válaszok (D-3.10) ✅
+
+A felhasználó hét kérdésére épülő kör (mind válasz MOST került az adatokba és a szabályokba, nem csak a tervbe):
+
+- **Q1 múlt idők/többes:** a -S/-ED/-ING/-LY utótag-tokenek mostantól RÖGZÍTETT ID-n élnek (FUNC-sáv 0x20–0x3C, 29 szó — a korábbi korpuszfüggő szűrés ID-eltolódást okozhatott volna). Bemeneti szabály: egész szó → szár+utótag (DREAMED → DREAM + -ED) → betűesés; a tő 4 ragozott alakot „ingyen" ér. Kimondott gyakori alakok egész szóként maradtak a korpuszban (STARS, ACHED).
+- **Q2 számok:** SZÖVEG-tokenként (a korpusz stílusa: „THE TIME NOW IS 8 00 ."); a 0–9 számjegyek kényszerrel a szókincsbe kerültek, hogy bemenetként ne vesszenek el; numerikus kiértékelés NINCS (a ROM FP-hívásai drágák lennének, a csevegéshez nem kellenek — későbbi opció).
+- **Q3 hangulat:** HAHA/WOW/NOOO és a :) :( :O smiley-ok szótár-tokenek + korpuszmondatok; 3 hangulat-válasz-slot (humor/humor/sajnálkozó) a meglévő hangulat-bit-rendszerre épülve.
+- **Q4 más nyelv:** SPEAK+GERMAN/FRENCH/HUNGARIAN/SPANISH/ITALIAN/LANGUAGE szándékok → „I SPEAK ONLY ENGLISH . SORRY ."
+- **Q5 konzerv válaszok (a felhasználó jó meglátása: spórol memóriát és tokent):** SZÁNDÉKTÁBLA a szótár tartalék-területén (18 bejegyzés × 6 B: minden kulcsszó jelen → nyer, a generálás ELŐTT fut). Válaszok az alapmag 7 új slotján: WHO MADE YOU → „I WAS MADE BY SAFAR SANDOR , WITH HELP FROM QWEN ." / WHO IS SAFAR SANDOR → „HE IS A HUNGARIAN BUS DRIVER , AMATEUR WRITER AND ASTRONOMER ." / közmondás: „ONE SWALLOW DOES NOT MAKE A SUMMER ." — a válaszok ANGOLUL (az angol üzem + a ZX81 karakterkészlet dönt; a magyar szöveg egy soron átírható az alapmag_gen.py-ban).
+- **Q6 DO/DOES/DO NOT/DOES NOT:** DOES felkerült a FUNC-sávba; DO NOT / DOES NOT korpuszban; a bemenet-normalizáló DON'T→DO NOT, DOESN'T→DOES NOT bontással dolgozik (l. token_demo).
+- **Q7 angol nyelv:** megerősítve — korpusz, szótár, alapmag mind angol (rövidebb szavak, kevesebb token, a ZX81 csak nagybetűs).
+
+**Eszközök/hardon:** `eszkozok/token_demo.py` — a chat-kör bemeneti tokenizálásának PC-side REFERENCIA-implementációja (= a Z80 pontos specifikuma, bemutató kimenettel); `tudas/alapmag_slotok.txt` slot-manifeszt (a tokengen név szerint hivatkozik a slotokra — nincs kézzel tartott sorszám); az alapmag 32/32 slot (5 összevonás + 2 elhagyás szabadította fel a helyet az 7 új válasznak).
+
+**Megtalált és javított valós hiba:** az „A"/„I" kettősség (funkciószó ÉS betű) a betűkiosztásnál felülírta a FUNC-ID-jüket, és a rekordterület folytonosságát is megbontotta (222 rekord a várt 208/224 helyett) — most a betűk NEM kapnak rekordot (a keresés a betűesésre fut rájuk), a rekord-ID-k 0x20–0xEF közt zártan folytonosak (assert).
+
+**D-3.9 folytatás:** az új adatban 0xC0 bájt jelent meg, a pgen-kapua lecsapott (pontosan, ahogy terveztük); a XOR-kulcs egyetlen forrása most a motor/boot.asm (XORKEY EQU 0x3E), a pgen és a pfuttatas onnan olvassa — többé nem csúszhat szét három kézzel tartott érték.
+
+**Minden teszt zöld** (epites, csomaggen, szimfuttatas, pgen + 0x80-kapu, pfuttatas; CRC-k frissültek). A .P felépítése változatlan (5103 B, 1 db 0x80 a záróban) — a viselkedés splash-demo marad; az új adatréteget a következő szelet, a Z80 CHAT-KÖR fogyasztja (v0.4 = az első valóban beszélgető, kipróbálható változat).

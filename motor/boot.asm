@@ -36,7 +36,7 @@
 
 INBYTE  EQU 0x034C        ; ROM: bájt a szalagról → C
 DFILE   EQU 0x4200
-XORKEY  EQU 0x40           ; D-3.9: a .P adathordozó ezzel XOR-olt bájtokként
+XORKEY  EQU 0x3E           ; D-3.9: a .P adathordozó ezzel XOR-olt bájtokként
                           ; utazik — a 0x80 a .P fájlformátumban a VARS-záró,
                           ; ezért a fájltestben egyetlen 0x80 sem szerepelhet
                           ; (a pgen.py kapuja érvényesíti); a szalag-mód

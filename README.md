@@ -38,7 +38,7 @@ ingerlésben és vitában is saját megfogalmazással, több körön át emléke
 | --- | --- | --- |
 | 1 | Ötlet és koncepció | ✅ kész (2026-11-21) |
 | 2 | Tervezés, működés és dizájn — végleges memóriatérkép, bitmezők, sávformátum, képernyők, vezérlők, Agent-parancsok | ✅ kész (2026-11-21) |
-| 3 | Kódolás és csomagolás — Z80 motor, PC-s eszközök, .T81 összeállítás | 🔵 6. szelet kész (2026-11-21): D-3.9 XOR-kódolt hordozó + 0x80-kapu (a C/F080 gyökere); korábban D-3.8 PERSIST-költöztetés + romsim.py; következik: ROM-szintű zöld futás, INPUT + Agent-kör |
+| 3 | Kódolás és csomagolás — Z80 motor, PC-s eszközök, .T81 összeállítás | 🟢 7. szelet kész (2026-11-22): D-3.10 beszélgetés-adatréteg (utótag-tokenek rögzített ID-ken, hangulat-smileyk, 18 bejegyzéses szándéktábla + 7 konzerv válasz-slot, token_demo referencia); korábban D-3.9 XOR-hordozó + 0x80-kapu; következik: a Z80 chat-kör (v0.4 = első beszélgető változat) |
 | 4 | Tudásbázis, tréning és tesztelés — alaptudás + témacsomagok, emulátoros ellenőrzés | ⬜ |
 
 ## Repó struktúra

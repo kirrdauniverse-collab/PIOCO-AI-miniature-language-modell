@@ -28,9 +28,16 @@ SCREENSHOT = os.path.join(BASE, "kazetta", "kepernyokep_p.txt")
 
 DFILE = 0x4200
 PERSIST = 0x7E00   # D-3.8: a 0x7F00-ról költözött — a ROM verem/ERR_SP/NMI-mentések a RAM tetején élnek
-XORKEY = 0x40      # D-3.9: a hordozó kódolt bájtjainak kulcsa (l. pgen.py)
+XORKEY = None     # D-3.9: a boot.asm-ből olvasva a main() elején (egyetlen forrás)
 
 def main():
+    global XORKEY
+    import re
+    _m = re.search(r"^XORKEY\s+EQU\s+(0x[0-9A-Fa-f]+)",
+                   open(os.path.join(BASE, "motor", "boot.asm"),
+                        encoding="utf-8").read(), re.M)
+    assert _m, "boot.asm: 'XORKEY EQU 0x..' sor hiányzik"
+    XORKEY = int(_m.group(1), 16)
     pf = open(PFILE, "rb").read()
     assert len(pf) > 0x74 + 100, "túl rövid a .P"
 
