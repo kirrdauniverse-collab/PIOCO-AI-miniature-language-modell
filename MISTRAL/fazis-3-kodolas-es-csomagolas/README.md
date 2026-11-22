@@ -105,3 +105,32 @@ SHIFT-vezerlok es bigramm-generator (olvasd:
 tudomány, gasztronómia, egészség, szórakozás, retro korszak/technológia,
 jövőkutatás, tanulás, hobbi, csillagászat, irodalom, filmek, hírességek,
 művészet, munka, UFO — mindegyik `tudas/*.txt` forrásból `kb_compile.py`-val.
+
+## v2.6b allas (2026-11-22, minden hitelt elnyo javitas gepekkel igazolva)
+
+**Javult:** a "WHO MADE" ENTER utani vad-ugras (fagy) oka megtalalva es
+javitva: a TOKSTRIP rutin ketszer PUSHolta HL-t (a 'S'-ellenorzes elott
+is), de csak egyszer kotrodott ki — a zaro RET a veremrol a mentett DE
+ertekeket vett fel (TOKBUF-framework), es oda ugrott (debug17: RET@0x4a85
+-> 0x684b = TOKBUF+3). Az uj TOKSTRIP egyetlen PUSH/POP parral es
+SBC-s szo-elemzessel mukodik; a zazolas MEGBIZHATOAN javitott (a
+fennt maga nyiltan bemutatja: tokenizalas Drawy valtozassal, majd a
+REASON/generator fobszag).
+
+**Mukodik (geppel igazolva):** 8 soros KEYTBL + ENTER + SHIFT, boot
+splash + teljes boot-abrak, PROFILELOOD, joval lehet gepelni, minden
+sor a BLINE-ba kerul, a bongeszes REASON/TOKENIZE-lan rendben el.
+
+**Nyilt hiba (a kovetkezo munkanap targya):** a vietos "gondolkodo"
+generator letrehozta valasz kozottikon egy masik, ROM-billentyu-lanc
+kornyekeral eso derozas van (debug18: 0x14ac-RET a 0xc24b-re ugrik,
+a KEYZONES-ban levo [0x7ffC] szemetetol). A tokstrips javitas utan
+nyirtalan mar; a kesz tubkezes ellen a "gondolkodo" fazisban all.
+
+**A nyelvi 7 kerdes allasa (v2.6):** multiple alakok/past-tense-toredek,
+szamok szankent es szovegszerint egyarant (NUMVAL-Jul), HAHA/WOW/NOOO +
+:)/:(/:O hangulatjelek, HELP vs. ka fiado, "WHO MADE/WHO IS S. SAFAR"
+KB2-adatokkal ("Sandor Safar, with GLM's help." / "Bus driver,
+amateur writer and astronomer from Hungary."), DO/DO NOT/DOES/DOES
+NOT intent-alakok — mindegyik a beszelgetes-tesztben ellenorzott
+sor-korulmenyek kozott (reszlet-vesztesek a leriasban).

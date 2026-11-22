@@ -18,7 +18,7 @@ def normal(word):
         "á": "a", "é": "e", "í": "i", "ó": "o", "ö": "o", "ő": "o",
         "ú": "u", "ü": "u", "ű": "u",
     })
-    return word.lower().translate(table).strip(".,!:;?()\"'")
+    return word.upper().translate(table).strip(".,!:;?()\"'")
 
 
 def train(corpus_path, out_path, max_tokens=254):

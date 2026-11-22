@@ -21,7 +21,7 @@ IMGBASE = t81_build.IMGBASE
 IMGEND = t81_build.IMGEND
 IMAGE_LEN = t81_build.IMAGE_LEN
 
-MOTOR_ZONA_MAX = 0x56FF - 0x4700 + 1
+MOTOR_ZONA_MAX = 0x57FF - 0x4700 + 1  # v2.6: motor-zona 0x4700..0x57FF
 
 hibak = []
 
@@ -35,7 +35,7 @@ def vizsgal_motor(bin_path):
     return data
 
 
-SZOTAR_ZONA_MAX = 2560
+SZOTAR_ZONA_MAX = 2048   # v2.6: SZOTAR-zona 0x5800..0x5FFF
 
 
 def vizsgal_szotar(path):
@@ -58,7 +58,7 @@ def vizsgal_szotar(path):
 
 
 def vizsgal_t81(path, motor_path=None, szotar_full_path=None,
-                tadat_path=None, tartalek_path=None):
+                tadat_path=None, tartalek_path=None, kb2_path=None):
     """EO81 kontener + single-image vedelmi vizsgalat."""
     with open(path, "rb") as f:
         data = f.read()
@@ -144,8 +144,9 @@ def vizsgal_t81(path, motor_path=None, szotar_full_path=None,
     # zonal bajtponossaag az adott .bin-ekkel:
     zona_fajlok = {
         "MOTOR": (motor_path, 0x4700),
-        "SZOTAR": (szotar_full_path, 0x5700),
+        "SZOTAR": (szotar_full_path, 0x5800),
         "TADAT": (tadat_path, 0x6B00),
+        "KB2T": (kb2_path, 0x7C00),
         "TARTALEK": (tartalek_path, 0x7D00),
     }
     for znev, (pp, kezdet) in zona_fajlok.items():
@@ -316,7 +317,7 @@ def vizsgal_tadat(path):
     print(f"[TADAT] adattabla-blokk: {len(adat)} bajt (cim 0x6B00)")
 
 
-# Használat: python3 ellenorzes.py <motor.bin> <szotar_full.bin> <PIOCO.T81> [bg.bin] [eml.bin] [tadat.bin] [tri.bin] [tartalek.bin]
+# Használat: python3 ellenorzes.py <motor.bin> <szotar_full.bin> <PIOCO.T81> [bg.bin] [eml.bin] [tadat.bin] [tri.bin] [tartalek.bin] [kb2.bin]
 if __name__ == "__main__":
     def gep(n):
         return sys.argv[n] if len(sys.argv) > n else None
@@ -324,7 +325,7 @@ if __name__ == "__main__":
     vizsgal_szotar(sys.argv[2])
     vizsgal_t81(sys.argv[3], motor_path=sys.argv[1],
                 szotar_full_path=sys.argv[2],
-                tadat_path=gep(6), tartalek_path=gep(8))
+                tadat_path=gep(6), tartalek_path=gep(8), kb2_path=gep(9))
     bigr = gep(4)
     if bigr:
         vizsgal_bigramm(bigr, sys.argv[2])

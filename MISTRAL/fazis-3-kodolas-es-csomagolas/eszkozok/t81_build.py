@@ -13,7 +13,7 @@ Az .T81 (EO81 konténer) fő blokkja egy teljes ZX81 programkép:
   - a builder beilleszti a '10 RAND USR 18176' launcher-sort (0x406D),
     a D_FILE/VARS/E_LINE/STKBOT/STKEND tartalmát +22 bájttal áthúzza,
     és bepatcheli a rendszerváltozókat;
-  - berakja a MOTOR/SZOTAR/ALAPMAG/TADAT/TARTALEK tartalmat a saját
+  - berakja a MOTOR/SZOTAR/ALAPMAG/TADAT/KB2T/TARTALEK tartalmat a saját
     zónájukba (a hézagok 0x00);
   - a szalagon lévő E_LINE = 0x7E00: a LOAD ide terminál, kép = 15863 B
     (motorszám 0x4700-tól, szótár 0x5700, CHAT 0x6000, EMLÉKEZET 0x6700,
@@ -32,7 +32,8 @@ Lejátszó-szabály: a lejátszó a stream ELŐTT minimálisan 0,5 s csendet adj
 
 Használat:
   python3 t81_build.py <motor.bin> <szotar.bin> <alapmag.bin> <out.T81> \
-      <tadat.bin> <tartalek.bin> [<csomag.bin> <csomagnev> ...]
+      <tadat.bin> <tartalek.bin> [<sablon-path>] [<kb2.bin>] \
+      [<csomag.bin> <csomagnev> ...]
 
 Védelmi ellenőrzések építéskor:
   - a kép mérete pontosan 15863 bájt (0x7E00 - 0x4009);
@@ -59,10 +60,11 @@ STKBOT_CIM = STKEND       # a boot szintúgy STKBOT = STKEND
 DFCC_CIM = D_FILE + 0x15  # az első sor 5. karaktere (a sablonéhoz igazodik)
 PROFIL_ZONA = (0x7E00, 0x7EFF)
 ZONAK = {
-    "MOTOR": (0x4700, 0x56FF),
-    "SZOTAR": (0x5700, 0x5EFF),
+    "MOTOR": (0x4700, 0x57FF),
+    "SZOTAR": (0x5800, 0x5FFF),
     "TADAT": (0x6B00, 0x6BFF),
     "ALAPMAG": (0x6C00, 0x6DFF),
+    "KB2T": (0x7C00, 0x7CFF),
     "TARTALEK": (0x7D00, 0x7DFF),
 }
 FP_18176 = bytes.fromhex("8f0e000000")   # ROM STACK-BC kimérés (5 bajt)
@@ -82,7 +84,7 @@ def launcher_sor():
             + b"\x76")
 
 
-def kep_general(sablon, motor, szotar, alapmag, tadat, tartalek):
+def kep_general(sablon, motor, szotar, alapmag, tadat, tartalek, kb2=None):
     if len(sablon) != 0x42C3 - 0x4009:
         raise SystemExit(f"SABLON méret: {len(sablon)} bajt (698 kell; "
                          "futtasd: python3 eszkozok/sablon_keszit.py)")
@@ -117,7 +119,7 @@ def kep_general(sablon, motor, szotar, alapmag, tadat, tartalek):
     set_word(0x401C, STKEND)                # STKEND
     # tartalmi zónák:
     adatok = {"MOTOR": motor, "SZOTAR": szotar, "TADAT": tadat,
-              "ALAPMAG": alapmag, "TARTALEK": tartalek}
+              "ALAPMAG": alapmag, "KB2T": kb2 or b"", "TARTALEK": tartalek}
     for nev, (kezdet, vege) in ZONAK.items():
         adat = adatok[nev]
         if len(adat) > vege - kezdet + 1:
@@ -156,7 +158,8 @@ def main():
         raise SystemExit(f"boot_sablon.bin ({sablon_p}) méret nem 698 — "
                          "futtasd: eszkozok/sablon_keszit.py")
 
-    kep = kep_general(sablon, motor, szotar, alapmag, tadat, tartalek)
+    kep = kep_general(sablon, motor, szotar, alapmag, tadat, tartalek,
+                      read(sys.argv[8]) if len(sys.argv) > 8 else None)
     assert len(kep) == IMAGE_LEN
 
     # szalagfolyam: név + bit7-lezáró + kép
@@ -164,8 +167,9 @@ def main():
     # konténer: "EO81" + név(32) + méret(16 ASCII) + adat
     kazo = MAGIC + b"PIOCO".ljust(32, b"\x00") + str(len(stream)).encode().ljust(16)
     kazo += stream
-    # bővítés: témacsomagok külön blokkokban (a motor saját betöltője kezeli)
-    i = 8
+    # bővítés: témacsomagok külön blokkokban (a motor saját betöltője kezeli);
+    # a 8. argumentum a kb2.bin (KB2T-zóna) — a csomag-blokkok ezután jönnek
+    i = 10 if len(sys.argv) > 8 else 8
     while i + 1 < len(sys.argv):
         adat = read(sys.argv[i])
         nev = sys.argv[i + 1].encode()

@@ -26,7 +26,7 @@ def fordit(path, out_path, max_hossz=1500):
         kw, fact = line.split("\t", 1)
         if not kw or not fact:
             continue
-        kb = biztos_szoveg(kw.strip().lower())
+        kb = biztos_szoveg(kw.strip().upper())
         fb = biztos_szoveg(fact.strip())
         blob.extend(kb)
         blob.append(0)

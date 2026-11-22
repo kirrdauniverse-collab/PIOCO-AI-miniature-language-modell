@@ -206,6 +206,14 @@ class Asm:
             return self.emit(0x37)
         if op == "EX" and am == ["DE", "HL"]:
             return self.emit(0xEB)
+        if op == "EX" and len(am) == 2 and am[0] == "(SP)":
+            r = am[1]
+            if r == "HL":
+                return self.emit(0xE3)
+            if r == "IX":
+                return self.emit(0xDD, 0xE3)
+            if r == "IY":
+                return self.emit(0xFD, 0xE3)
         if op in ("LDI", "LDIR"):
             return self.emit(0xED, 0xA0 if op == "LDI" else 0xB0)
         if op == "RET":

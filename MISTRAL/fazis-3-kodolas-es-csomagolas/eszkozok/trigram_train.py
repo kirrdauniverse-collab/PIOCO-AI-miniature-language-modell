@@ -50,7 +50,7 @@ ECHARS = str.maketrans({
 
 
 def normal(word):
-    return word.lower().translate(ECHARS).strip(".,!:;?()\"'")
+    return word.upper().translate(ECHARS).strip(".,!:;?()\"'")
 
 
 def main():

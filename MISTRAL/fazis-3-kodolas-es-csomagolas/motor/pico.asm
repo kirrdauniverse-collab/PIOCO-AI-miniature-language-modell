@@ -53,13 +53,14 @@ FRAMES      EQU 0x4034        ; 50 Hz óraszámító 2 B; a ROM DISPLAY-1 (0x022
 DFSYSV      EQU 0x400C        ; D_FILE rendszerváltozó (képernyő-báziscím)
 PROFIL      EQU 0x7E00        ; PROFIL védett blokk (256 B; az image-en KÍVÜL)
 MOTORBASE   EQU 0x4700        ; motor-zóna 0x4700..0x56FF = USR 18176 belépés
-SZOTAR      EQU 0x5700        ; szótár-zóna 0x5700..0x5EFF-ba is húzhatja a motor
+SZOTAR      EQU 0x5800        ; v2.6: szótár-zóna 0x5800..0x5FFF (a motor-zóna 0x4700..0x57FF)
 KB_BASE     EQU 0x6C00        ; ALAPMAG: betöltött tudáslánc (kb_compile)
 CHAT        EQU 0x6000
 CHATM       EQU 0x6000           ; napló-mágnes (0xA5)
 CHATM0      EQU 0x6001           ; itt indul az első rekord
 ; rekord: [fejléc][0][szöveg][0]
 MUNKAT      EQU 0x6800
+KB2T        EQU 0x7C00        ; v2.6: KB2-lánc (0x7C00..0x7CFF, 256 B)
 TARTALEK    EQU 0x7D00
 VEREMTOP    EQU 0x7FFF
 TADAT       EQU 0x6B00        ; fix adattabla-blokk: PB-buferek es ALAPMAG kozott
@@ -488,14 +489,12 @@ GC_R:
 ; READLINE: karakteres sorbevitel (ENTER-ig), BLINE/LINELEN
 READLINE:
         LD HL,BLINE
-        LD DE,64
+        LD C,64
         XOR A
 RD_CL:
         LD (HL),A
         INC HL
-        DEC DE
-        LD A,E
-        OR D
+        DEC C
         JR NZ,RD_CL
         XOR A
         LD (LINELEN),A
@@ -515,13 +514,28 @@ RD_L:
         CALL SHIFTCMD           ; SHIFT+billentyű: vezérlő
         JR RD_L
 RD_CH:
-        LD A,B
+; v2.6: a karakter beirasa a BLINE-ba is (BLINE + LINELEN), majd 0-lezaras;
+; eddig csak kepernyore ment — igy a REASON/FACTSET/TOKENIZE ures sort latott
+        LD A,B                  ; A = kiirando karakter
         PUSH AF
         CALL SAFEPCHR
         POP AF
         LD A,(LINELEN)
         CP 62
-        JR Z,RD_L
+        JR Z,RD_L               ; 62 darab karakter utan mar csak nyomtat
+        PUSH HL
+        PUSH DE
+        LD HL,BLINE
+        LD E,A
+        LD D,0
+        ADD HL,DE               ; HL = BLINE + LINELEN
+        LD A,B
+        LD (HL),A
+        INC HL
+        LD (HL),0               ; 0-lezaras a beirt karakter utan
+        POP DE
+        POP HL
+        LD A,(LINELEN)
         INC A
         LD (LINELEN),A
         JR RD_L
@@ -683,7 +697,7 @@ TOK_L:
         LD A,B
         OR A
         JR Z,TOK_CH
-        LD A,B
+TOK_ST: LD A,B
         LD (DE),A
         INC DE
         LD A,(ATTN)             ; fókusz: az első szótári szó
@@ -699,8 +713,46 @@ TOK_SEP:
         INC HL
         JR TOK_L
 TOK_CH:
+; v2.6: szotar-miss utan 'S'-vegzodesu szo: tovere ujra kereses (tobbes alak)
+        CALL TOKSTRIP
+        LD A,B
+        OR A
+        JR Z,TOK_FALL
+        JR TOK_ST
+TOK_FALL:
         CALL CHARFALL
         JR TOK_L
+
+; TOKSTRIP: HL = szó eleje (BLINE-ban); a szotar-miss utan hivandó.
+; Ha a szó hossza >= 4 és 'S'-re végződik, a tövére (utolsó karakter
+; ideiglenes levágásával) újra DICTLOOK fut; B = token-ID vagy 0.
+; HL, DE, BC és a flagok romolhatnak; csak B a kimenet.
+; v2.6b javítás: az előző változat kétszer PUSHolta HL-t (a 'S'-ellenőrzés
+; előtt is), de csak egyszer popta ki, így a záró RET a mentett DE
+; értékére (TOKBUF-pointer) ugrott = wild jump. Új terv: egyetlen
+; PUSH/POP pár ('S' visszaállításához), a szó-elejet SBC-vel számoljuk.
+TOKSTRIP:
+        CALL WORDLEN            ; A = hossz; HL helyben marad; C=romlik
+        CP 4
+        JR C,TS_R0
+        LD B,0
+        LD C,A
+        DEC C                   ; BC = hossz-1
+        ADD HL,BC               ; HL = az utolsó karakter címe
+        LD A,(HL)
+        CP 'S'
+        JR Z,TS_CUT
+TS_R0:  LD B,0                  ; nincs töve-vágás -> betű-tokenek jönnek
+        RET
+TS_CUT:
+        LD (HL),0               ; töve vágás a BLINE-ban (ideiglenes)
+        PUSH HL                 ; az 'S' helye a visszaállításhoz
+        OR A                    ; carry törlése
+        SBC HL,BC               ; HL = szó eleje (hossz-1-tel vissza)
+        CALL DICTLOOK           ; B = token vagy 0
+        POP HL                  ; az 'S' címe visszajön
+        LD (HL),0x53            ; 'S' visszaállítása
+        RET
 
 TOKCOUNT:
         PUSH HL
@@ -965,6 +1017,10 @@ GEN_KB:
         OR A
         RET NZ
         LD HL,KBTAB             ; beépített tartalék
+        CALL KBWALK
+        OR A
+        RET NZ
+        LD HL,KB2T              ; v2.6: KB2-lanc (0x7C00): azonosito, Safar, hangulat
         CALL KBWALK
         OR A
         RET NZ
@@ -1964,7 +2020,10 @@ FS_S2:  LD A,(DE)
         JR NZ,FS_S2
         POP BC
         JR FS_NL
-FS_E2:  LD A,5
+FS_E2:  LD A,(INTENT)
+        OR A
+        RET NZ                  ; v2.6: a REASON-szandekot (kerdes/hangulat)
+        LD A,5                  ; nem irjuk felul fakt-tal
         LD (INTENT),A
         RET
 FS_NX:  PUSH BC
@@ -2701,6 +2760,15 @@ INTKWTAB:
         db "REMEMBER",0,5
         db "DRAW",0,8
         db "SAVE",0,8
+; v2.6: DO-prefix (DO/DOES/DOES NOT lefedi), CAN (nyelvi kerdes + KB2)
+        db "DO",0,2
+        db "CAN",0,2
+; v2.6: hangulat-szavak (KB2-valaszok, prefix alapjan) — intent 2 = GEN_KB
+        db "HAHA",0,2
+        db "WOW",0,2
+        db "NOO",0,2
+        db "HAPPY",0,2
+        db "SAD",0,2
         db 0
 
 ; beépített tudás-tartalék: [keyword][0][fact][0]
