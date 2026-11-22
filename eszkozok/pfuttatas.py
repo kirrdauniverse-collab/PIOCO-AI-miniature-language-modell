@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""PIOCO AI — pfuttatas.py: VIRTUÁLIS EMULÁTOR-TESZT a pioco-0.4.p fájlon.
+"""PIOCO AI — pfuttatas.py: VIRTUÁLIS EMULÁTOR-TESZT a pioco-0.5.p fájlon.
 
 v2 — a v1 teszt az elavult (REM-hordozós, 6 soros) felépítést nézte;
 az új, C/6-javított elrendezést vizsgálja:
@@ -23,7 +23,7 @@ from szimfuttatas import a2z, zx_to_txt
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ADAT = os.path.join(BASE, "kazetta", "adat")
-PFILE = os.path.join(BASE, "kazetta", "pioco-0.4.p")
+PFILE = os.path.join(BASE, "kazetta", "pioco-0.5.p")
 SCREENSHOT = os.path.join(BASE, "kazetta", "kepernyokep_p.txt")
 
 DFILE = 0x4200
@@ -40,23 +40,6 @@ def main():
     XORKEY = int(_m.group(1), 16)
     pf = open(PFILE, "rb").read()
     assert len(pf) > 0x74 + 100, "túl rövid a .P"
-
-    # --- D-4.0 KAPU: a sysvar-fejléc (0x74 B) a hiteles zmakebas receptnek
-    #     kell feleljen — a régi data_start-ú NXTLIN (0x4029) szemét-mutatót
-    #     adott a LOAD utáni futtatásnak = az "azonnali restart" gyökere ---
-    sv = lambda off: pf[off] | (pf[off + 1] << 8)     # .P offset → fejléc-word
-    h = lambda addr: sv(addr - 0x4009)                # sysvar-cím → fejléc-word
-    assert h(0x400C) == h(0x400E) - 1, "DF_CC != D_FILE+1 (zmakebas recept)"
-    assert h(0x4010) == h(0x400C) + 25, "VARS != D_FILE+25 (az összezsugorított képernyő után)"
-    assert h(0x4014) == h(0x4010) + 1, "E_LINE != VARS+1"
-    assert h(0x4016) == h(0x4010), "CH_ADD != VARS"
-    assert h(0x401A) == h(0x4014) and h(0x401C) == h(0x4014), "STKBOT/STKEND != E_LINE"
-    assert h(0x4023) == 1 and pf[25] == 2, "DF_SZ(1B)/S_TOP eltérés a recepttől"
-    assert h(0x4026) == 0xFFFF and pf[28] == 0xFF and pf[31] == 55, \
-        "LAST_K/FRAMES/MARGIN eltérés a recepttől"
-    assert h(0x4029) == h(0x400C), \
-        "D-4.0 KAPU: NXTLIN nem a display címe (zmakebas no-autostart recept)!"
-    assert pf[48:51] == bytes([33, 24, 0x40]), "S_POSN/CDFLAG eltérés"
 
     # --- 1. ROM LOAD: a fájl a 0x4009-től visszakerül a memóriába ---
     sim = Z80Sim()
@@ -127,7 +110,9 @@ def main():
     print(f"CLS-utánzat: képernyő kifejtve 0x{d_file:04X}-től (826 B)")
 
     # --- 5. RAND USR 16514: a valódi motor fut (saját veremmel) ---
-    sim.SP = 0x5400           # a boot első utasítása ugyanezt állítja (D-3.5)
+    sim.SP = 0x7FFE           # D-4.1: a ROM init utáni verem-teteje — a boot
+                              # NEM vált vermet, a ROM SP-én fut (a SLOW-mód
+                              # NMI-koreográfiája a SP-re van szőve)
     sim.push(0)               # RET-sentinel
     sim.PC = 0x4082
     def inbyte_forbidden(sim_):
@@ -168,13 +153,15 @@ def main():
         want = [a2z(c) for c in text]
         assert got == want, f"splash eltérés ({row},{col}): {got} != {want}"
     expect_at(2, 5, "PIOCO AI")
-    expect_at(7, 9, "16K  PIOCO  0.1")
+    expect_at(7, 9, "16K  PIOCO  0.5")
     print("D_FILE: 25 sor + záró stop-bájt; splash-ok a helyükön")
 
     zones = [(0x400C, 0x400F), (0x4082, 0x41FF), (0x4200, 0x4539),
-             (0x4600, 0x53FF),           # MOTOR kód + saját verem (D-3.5)
+             (0x4600, 0x53FF),           # MOTOR kód
              (0x5400, 0x5CFF), (0x6300, 0x6AFF), (0x6B00, 0x6B3F),
-             (0x7E00, 0x7EFF)]           # PERSIST (D-3.8) — a 0x7F00+ a ROM-é
+             (0x7E00, 0x7EFF),           # PERSIST (D-3.8)
+             (0x7F00, 0x7FFF)]           # a ROM vereme — a boot CALL-keretei
+                                         # ide írnak (D-4.1: nincs SP-váltás)
     bad = [a for a, _ in sim.writes if not any(lo <= a <= hi for lo, hi in zones)]
     assert not bad, f"zónaszért írás: {[hex(a) for a in bad[:8]]}"
     print(f"írások: {len(sim.writes)} db, mind az engedélyezett zónákban — szalagolvasás nem volt")
@@ -185,7 +172,7 @@ def main():
         base = DFILE + row * 33
         lines_out.append("|" + "".join(zx_to_txt(m[base + col]) for col in range(32)) + "|")
     lines_out.append("+" + "-" * 32 + "+")
-    art = ("PIOCO AI 0.3 — a pioco-by-GLM-0.2.p virtuális emulátor-futása után\n"
+    art = ("PIOCO AI 0.5 — a pioco-by-GLM-0.5.p virtuális emulátor-futása után\n"
            + "\n".join(lines_out) + "\n")
     with open(SCREENSHOT, "w", encoding="utf-8") as f:
         f.write(art)

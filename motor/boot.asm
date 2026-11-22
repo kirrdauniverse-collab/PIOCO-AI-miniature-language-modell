@@ -14,9 +14,16 @@
 ;   - IN-BYTE szinkron/pilot-kezelés blokkhatárokon (szalag mód)
 ;   - IN-BYTE regiszter-megőrzése (HL/DE feltételezett; AF felülírása biztos)
 ;
-; Menet: veremváltás (LD SP,0x5400 — D-3.5: a ROM vereme a RAM tetején
-;   áll, a PERSIST-init nullázása összeomlasztaná; a saját verem a
-;   MOTOR zóna tetején fut, bőven a kód fölött) → PERSIST init →
+; Menet: NINCS veremváltás (D-4.1) — a boot a ROM saját veremén fut
+;   (USR-belépési SP). A D-3.5-ös LD SP,0x5400 az indokolatlanul NAGY
+;   verem-ütközést okozott: a gép LOAD után SLOW módban van, a ROM
+;   NMI-kijelző-koreográfiája (0x0066: PUSH AF/BC/DE/HL a futó program
+;   veremére; a 0x0038-as display-hurok POP HL/POP DE + JP (HL)) a SP-re
+;   van szőve — SP-csere esetén a következő NMI-nél a koreográfia a mi
+;   adatainkra POP-ol → JP (HL) wild címre → restart. A D-3.5 oka (a
+;   PERSIST a 0x7F00-on, a ROM veremterületén) a D-3.8-cal megszűnt:
+;   a PERSIST most 0x7E00-0x7EFD, a ROM vereme (0x7FFC-től lefelé) ~200 B
+;   mélységig nem éri el → PERSIST init →
 ;   üzemmód (BOOTMODE):
 ;   0 = SZALAG: következő blokk (típus 2, MOTOR) betöltése 0x4600-ra;
 ;   1 = REZIDENS (.P terjesztés): a .P adatterületének (a program után,
@@ -50,8 +57,7 @@ STG2    EQU 0x4600
 
         ORG 0x4082
 BOOT:
-        LD SP,0x5400           ; D-3.5: saját verem a MOTOR zóna tetején
-        CALL PERSISTINIT
+        CALL PERSISTINIT       ; D-4.1: a ROM veremén futunk (l. a Menet-et)
         LD A,(BOOTMODE)
         OR A
         JR Z,BTAPE

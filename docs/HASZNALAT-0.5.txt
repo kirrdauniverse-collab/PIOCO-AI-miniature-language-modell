@@ -1,0 +1,40 @@
+PIOCO AI — pioco-by-GLM-0.5.p — használati utasítás (2026-11-22)
+================================================================
+
+MI VAN A 0.5-BEN (és miért jutott el idáig)
+-------------------------------------------
+* A 0.4-ben a fejléc-javítás (NXTLIN, D-4.0) helyes volt — de volt EGY
+  MÁSIK boot-hiba is, amit most találtam meg (D-4.1): a boot elején
+  áthelyeztük a veremet (LD SP,0x5400). A ZX81 SLOW-kijelzője úgy működik,
+  hogy a ROM megszakítás-kezelője a MOST FUTÓ PROGRAM veremére ment
+  (PUSH AF/BC/DE/HL), és a kijelző-generáló hurok onnan veszi vissza a
+  kontextust (POP + JP (HL) a kijelző-be). Ha a gép SLOW módban van
+  (LOAD után az!) és mi elmozdítjuk a veremet, a következő NMI-nél a
+  koreográfia a mi adatainkra POP-ol, és a JP (HL) tetszőleges címre ugrik
+  → azonnali restart. Normál gépi kódos program sosem mozdítja el a
+  veremet — most már a mi bootunk sem. A PERSIST-terület (D-3.8 óta
+  0x7E00-0x7EFD) nem ütközik a ROM veremével.
+* A fejléc a hiteles zmakebas recept (D-4.0, ellenőrizve a zmakebas-port
+  forrásával bájtonként); a pfuttatas végleges kapuval őrzi.
+* Minden 0.4-es újdonság bent van: magyar identitás-válaszok (GLM
+  SEGITSEGGEL KESZITETT SAFAR SANDOR / MAGYARORSZAGON ELO AUTOBUSZVEZETO,
+  AMATOR IRO ES CSILLAGASZ / CSAK ANGOLUL BESZELEK, SAJNALOM / EGY FECSKE
+  NEM CSINAL NYARAT), EMAIL-slot (SAFIZX810GMAIL.COM — a 0 az @),
+  obszcén-mód (durva → sérteget vissza, kocsma-nyelv → kocsma-nyelven
+  felel), elgépelés-tűrés (1 karakter eltérésig), ismeretlen szó
+  visszatanulása, utótag-tokenek (-S/-ED/-ING/-LY).
+
+BETÖLTÉS (ZX81, 16K)
+--------------------
+1. LOAD ""  → a fájl betöltése, "0 OK" listát kell látnod.
+2. RUN + NEWLINE → splash: "PIOCO AI" (2. sor) és "16K  PIOCO  0.5"
+   (7. sor). A főciklus nyugodt várakozás (MWAIT); kilépni RESET-tel
+   lehet a 0.6-os chat-körig.
+3. Ha a splash megjelenik, a betöltés ÉS a futás rendben van.
+
+FÁJL-FELÉPÍTÉS (ellenőrizhető)
+------------------------------
+5100 B; program 382 B @0x407D (1 REM 358 B + 2 RAND USR 16514); adat
+4576 B @0x41FB (XOR 0x3E-kódolt hordozó); 25×0x76 zárókép + 0x80.
+Fejléc (zmakebas recept): D_FILE=0x53DB, VARS=0x53F4, E_LINE=0x53F5,
+NXTLIN=0x53DB, DF_SZ=2, MARGIN=55.

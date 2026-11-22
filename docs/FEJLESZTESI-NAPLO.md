@@ -188,3 +188,35 @@ visszatanulása (echo-puffer spec, 8×16 B szabad RAM-ban); sortörés (egész s
 szó ≤ 18 B ≤ 32 kar). Az alapmag slot-összevonásokkal (howareyou+askname, drawhouse+window,
 tree+erase, daygreet+bye) helyet kapott a 4 új válasz. Rekordlimit 15→18 B (SAFIZX810GMAIL.COM).
 v0.4 = pioco-0.4.p (5103 B), minden teszt zöld (epites/csomaggen/szimfuttatas/pgen+kapuk/pfuttatas).
+
+## 2026-11-22 · 3. fázis, 9. szelet — A RESTART MÁSODIK GYÖKERE: SP-VÁLTÁS (D-4.1) ✅
+
+**A gazda jelzése:** a 0.4 is azonnal restartol. A fejléc (D-4.0) helyes — a
+zmakebas-plus port createHeader() forrásával bájtonként ellenőrizve (NXTLIN
+no-autostart = D_FILE cím; minden más mező egyezik). A maradék hiba a BOOT-ban
+volt: **LD SP,0x5400**. A ZX81 SLOW-kijelzője veremre szőtt koreográfia
+(binárisból dekódolva, nem az OCR-listából): az NMI-kezelő (0x0066:
+EX AF,AF' / INC A' / PUSH AF,BC,DE,HL a futó program veremére / LD HL,(D_FILE) /
+SET 7,H / HALT / OUT(FD),A / JP (IX)) és a display-hurok (0x0038: DEC C / POP HL /
+DEC B / RET Z / SET 3,C / LD R,A / EI / JP (HL) — a kijelző-bájtok a
+ciklus-csenés miatt valóságon láthatatlanul "futnak le") a SP-re épül.
+SP-csere esetén a következő NMI a mi adatainkra POP-ol → JP (HL) wild → restart.
+A D-3.5-ös SP-váltás oka (PERSIST a 0x7F00-on) a D-3.8-cal megszűnt — a
+váltás feleslegesen maradt bent. **Javítás: a boot a ROM veremén fut**
+(USR-belépési SP ≈ 0x7FFE; a boot CALL-keretei ~40 B mélységig, a
+PERSIST 0x7E00-0x7EFD-en tág határral nem ütközik).
+
+**Teszteszköz-hiba is kijavítva:** a szalag-úton az elszállás (0x27 @ 0x4667 =
+szótár-adat a motor-zónában) oka az volt, hogy ebben a körben a csomaggen
+kimaradt a láncból → az ELAVULT pioco-0.1.tape-ben a stage-2 CALL STG1LOAD
+címe a régi (3 bájtal nagyobb) boot LOADBLK-jére mutatott → a rutinba 3 bájttal
+beljebb esve a fejléc-elcsúszás → TBL-tévedés → a szótár a 0x4600-ra íródott.
+**Elavulási kapu** a szimfuttatasban: a szalag motor-blokkja bájtonként
+egyezhessen az aktuális motor0.bin-nel. (A csomaggen parse_and_verify payload
+mezője data[:0] — üres; a kapu a szalagot közvetlenül olvassa.)
+
+**Verzió:** v0.5 = pioco-0.5.p (5100 B, REM-törzs 358 B, adat 0x41FB-től,
+D_FILE=0x53DB), splash "16K  PIOCO  0.5". Teljes lánc zöld: epites →
+csomaggen → szimfuttatas → pgen → pfuttatas. Nyitott tétel: a romsim
+teljes ROM-szintű végpont-tesztje (a saját sim NMI/IX-protokollja még nem
+hű a 0x0066-ás állapotgéphez — a pfuttatas + a fejléc-kapu a mérvadó).

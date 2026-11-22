@@ -64,6 +64,19 @@ def main():
 
     blocks = parse_and_verify(tape)
     assert blocks[0][0] == 1, "az első blokk legyen a BOOT (típus 1)"
+    # --- D-4.1 ELAVULÁSI KAPU: a szalag motor-blokkja az AKTUÁLIS
+    #     motor0.bin legyen (a boot méretváltozása átmozgatja a LOADBLK-t,
+    #     a régi szalagon pedig a stage-2 CALL-ja 3 bájttal beljebb esik a
+    #     rutinba → fejléc-elcsúszás → a szótár a motor-kódra íródik) ---
+    i, mot_payload = 0, None
+    while i < len(tape):
+        ttype, n = tape[i], tape[i + 2] | (tape[i + 3] << 8)
+        if ttype == 2:
+            mot_payload = tape[i + 4:i + 4 + n]
+            break
+        i += 6 + n
+    assert mot_payload == motor0, ("szalag elavult: a motor-blokk nem az "
+        "aktuális motor0.bin — futtass csomaggen-t a szimfuttatas ELŐTT!")
     stream = bytearray()
     for (ttype, ver, n, crc, _) in blocks[1:]:
         # payload: fejléc (4) + adat (n) + CRC (2)
@@ -80,7 +93,7 @@ def main():
 
     sim = Z80Sim()
     sim.mem[0x4082:0x4082 + len(boot)] = boot
-    sim.SP = 0x5400           # D-3.5: a boot saját vereme a MOTOR zóna tetején
+    sim.SP = 0x7FFE           # D-4.1: a ROM veremén futunk (nincs SP-váltás)
     sim.push(0)               # RET-sentinel
     sim.PC = 0x4082
     sim.hooks[0x034C] = inbyte
@@ -125,14 +138,15 @@ def main():
         want = [a2z(c) for c in text]
         assert got == want, f"splash eltérés ({row},{col}): {got} != {want}"
     expect_at(2, 5, "PIOCO AI")
-    expect_at(7, 9, "16K  PIOCO  0.1")
+    expect_at(7, 9, "16K  PIOCO  0.5")
     print("D_FILE: 25 sor (24 tartalmi + 1 alsó), soronként 32 engedélyezett kód + 0x76, záró stop-bájt; splash-ok a helyükön")
 
     # --- 6. írás-zóna-ellenőrzés ---
     zones = [(0x400C, 0x400F), (0x4082, 0x41FF), (0x4200, 0x4539),
-             (0x4600, 0x53FF),           # MOTOR kód + a saját verem teteje (D-3.5)
+             (0x4600, 0x53FF),           # MOTOR kód
              (0x5400, 0x5CFF), (0x6300, 0x6AFF), (0x6B00, 0x6B3F),
-             (0x7E00, 0x7EFF)]           # PERSIST (D-3.8) — a 0x7F00+ a ROM-é
+             (0x7E00, 0x7EFF),           # PERSIST (D-3.8)
+             (0x7F00, 0x7FFF)]           # a ROM vereme — a boot CALL-keretei (D-4.1)
     bad = [a for a, _ in sim.writes if not any(lo <= a <= hi for lo, hi in zones)]
     assert not bad, f"zónaszért írás: {[hex(a) for a in bad[:8]]}"
     nw = len(sim.writes)
@@ -145,7 +159,7 @@ def main():
         base = DFILE + row * 33
         lines.append("|" + "".join(zx_to_txt(m[base + col]) for col in range(32)) + "|")
     lines.append("+" + "-" * 32 + "+")
-    art = "PIOCO AI 0.3 — D_FILE a Z80-szimulációs végpont-teszt után\n" + "\n".join(lines) + "\n"
+    art = "PIOCO AI 0.5 — D_FILE a Z80-szimulációs végpont-teszt után\n" + "\n".join(lines) + "\n"
     with open(SCREENSHOT, "w", encoding="utf-8") as f:
         f.write(art)
     print(art)
