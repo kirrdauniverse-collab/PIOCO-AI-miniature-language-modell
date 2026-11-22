@@ -220,3 +220,35 @@ D_FILE=0x53DB), splash "16K  PIOCO  0.5". Teljes lánc zöld: epites →
 csomaggen → szimfuttatas → pgen → pfuttatas. Nyitott tétel: a romsim
 teljes ROM-szintű végpont-tesztje (a saját sim NMI/IX-protokollja még nem
 hű a 0x0066-ás állapotgéphez — a pfuttatas + a fejléc-kapu a mérvadó).
+
+## 2026-11-22 · 3. fázis, 10. szelet — A RESTART VALÓDI GYÖKERE: AZ ELVESZETT JAVÍTÁS (D-4.2) ✅
+
+**A gazda jelzése:** a 0.5 sem indul. Következmény: felépítettem a fej nélküli
+VALÓDI emulátort (ZEsarUX 13.1-B1, --vo stdout/null, ZRCP távvezérlés —
+eszkozok/zvaloditest.py), és benben futtattam a fájlt. A lelet lesúlyos:
+**a D-4.0-ás NXTLIN-javítás soha nem került a fájlba** — egy git-rebase
+konfliktusfeloldása (a 9. szelet végén) a pgen.py régi `hw(32, data_start)`
+sorát és a pfuttatas fejléc-kapujának hiányát hagyta meg; a 0.4 és az 0.5 is
+hibás NXTLIN=0x41FB-val készült, a kapu nélkül a lánc zöldet mutatott.
+Az emulátorok a .P betöltése után NXTLIN-ra ugranak (ZEsarUX-ben
+megfigyelve: a saját autostartos tesztfájljuk magától fut le) — a
+hordozócím az XOR-adatot futtatja BASIC-ként → azonnali restart, minden
+verziónál. A diagnózis tehát 0.4 óta helyes volt, a javítás elveszett.
+
+**Javítás (D-4.2):** pgen NXTLIN = 0x407D (az 1. sor címe — a zmakebas
+autostart receptje; a betöltő emulátorok így REM → RAND USR 16514 → a
+boot útvonalra lépnek) + a pfuttatas VÉGLEGES bájtonkénti fejléc-kapuja
+(0x74 B a zmakebas createHeader receptje ellen, NXTLIN-nal együtt).
+
+**Igazolás valódi emulátorban (ZEsarUX 13.1-B1):** mindkét betöltési úton
+(közvetlen memóriakép és --realtape/--fastautoload) a boot lefut,
+D_FILE=0x4200, a képernyőn "PIOCO AI" / "16K  PIOCO  0.6", a CPU a SLOW
+kijelzőzési koreográgiában stabil (PC a tükörzött képernyőcímeken — a
+ZX81 "kijelző-végrehajtása", a regiszter-pillanatképben visszaigazolva).
+A lelet: kazetta/kepernyokep_valodi.txt. A futógépes bizonyság innentől
+a szimulátor-hűség vitája helyett közvetlen: ami ZEsarUX-ben fut, az a
+valódi gépen is fut.
+
+**Verzió:** v0.6 = pioco-0.6.p (5100 B), splash "16K  PIOCO  0.6".
+Teljes lánc zöld: epites → csomaggen → szimfuttatas → pgen → pfuttatas
+→ zvaloditest (valódi emulátor, mindkét út).

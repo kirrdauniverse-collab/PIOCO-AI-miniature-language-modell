@@ -138,7 +138,7 @@ def main():
         want = [a2z(c) for c in text]
         assert got == want, f"splash eltérés ({row},{col}): {got} != {want}"
     expect_at(2, 5, "PIOCO AI")
-    expect_at(7, 9, "16K  PIOCO  0.5")
+    expect_at(7, 9, "16K  PIOCO  0.6")
     print("D_FILE: 25 sor (24 tartalmi + 1 alsó), soronként 32 engedélyezett kód + 0x76, záró stop-bájt; splash-ok a helyükön")
 
     # --- 6. írás-zóna-ellenőrzés ---
@@ -159,7 +159,7 @@ def main():
         base = DFILE + row * 33
         lines.append("|" + "".join(zx_to_txt(m[base + col]) for col in range(32)) + "|")
     lines.append("+" + "-" * 32 + "+")
-    art = "PIOCO AI 0.5 — D_FILE a Z80-szimulációs végpont-teszt után\n" + "\n".join(lines) + "\n"
+    art = "PIOCO AI 0.6 — D_FILE a Z80-szimulációs végpont-teszt után\n" + "\n".join(lines) + "\n"
     with open(SCREENSHOT, "w", encoding="utf-8") as f:
         f.write(art)
     print(art)

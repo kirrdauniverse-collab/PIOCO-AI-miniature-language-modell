@@ -1,0 +1,46 @@
+PIOCO AI — pioco-by-GLM-0.6.p — használati utasítás (2026-11-22)
+================================================================
+
+MOST ANTAL TÖRTÉNT (és miért nem működött három verzión át)
+-----------------------------------------------------------
+A valódi hiba ugyanaz volt, amit a 0.4-nél már megtaláltam (hibás NXTLIN),
+de a javítás egy git-rebase során csendben ELVESZETT — a 0.4 és az 0.5
+fájljai is a régi, hibás értékkel készültek, a tesztkapu pedig ugyanabban
+a rebase-ben tűnt el, ezért a saját tesztem zöldet mutatott. Elnézést —
+mostantól a kapu bájtonként őrzi a fejlécet, ez többé nem fordulhat elő.
+
+A hiba lényege: a .P fejlécében a NXTLIN rendszerváltozó értéke az
+adatterület címe (0x41FB) volt. A legtöbb emulátor a .P betöltése után a
+NXTLIN-ba írt címre ugrik (auto-futtatás) — vagyis a gép az XOR-kódolt
+hordozóadatot próbálta BASIC-programként futtatni → értelmezhetetlen
+"sorok" → azonnali restart. Ez magyaráz minden eddigi jelenséget.
+
+A 0.6-os javítás a valódi ZX81-játékok receptje: NXTLIN = az 1. sor
+címe (0x407D, autostart). Betöltés után a gép magától futtatja:
+1. sor REM (semmi sem történik) → 2. sor RAND USR 16514 → a boot
+felállítja a rendszert és kirajzolja a splash-t.
+
+EZEN A VERZIÓN MÁR NEM CSUPÁN A SAJÁT SZIMULÁTORM TESZTEM: felépítettem
+egy valódi, külső emulátort (ZEsarUX 13.1) a fej nélküli tesztkörnyezetembe,
+és benne futtattam a fájlt MINDKÉT betöltési úton (közvetlen memóriakép-
+betöltés és ROM-os szalagbetöltés). Eredmény: a boot lefut, a képernyőn
+a "PIOCO AI" / "16K  PIOCO  0.6" splash, a gép stabilan fut. A lelet
+a repóban: kazetta/kepernyokep_valodi.txt.
+
+BETÖLTÉS (ZX81, 16K)
+--------------------
+1. Nyisd meg / töltsd be a pioco-by-GLM-0.6.p fájlt.
+2. A splash-nek MAGÁTÓL meg kell jelennie ("PIOCO AI" a 3. sorban,
+   "16K  PIOCO  0.6" a 8.-ban) — az autostart miatt nem kell RUN-t
+   írni. Ha az emulátorod mégis a "0 OK" listát mutatja, írd be:
+   R (RUN) + ENTER — az is elindítja.
+3. Kilépni RESET-tel lehet a következő (chat-)körig.
+
+ÖSSZEFOGLALÓ A 0.6 TARTALMÁRÓL
+------------------------------
+* Fejléc: a zmakebas receptje bájtonként (pfuttatas-kapu), NXTLIN=0x407D
+  autostart; a boot a ROM saját veremén fut (0.5-től); a boot nem nyúl a
+  PERSIST-hez a 0x7E00-0x7EFD sávon kívül.
+* Minden korábbi tartalmi újdonság megvan: magyar identitás-válaszok,
+  EMAIL-slot, obszcén-mód, elgépelés-tűrés, ismeretlen szó visszatanulása,
+  utótag-tokenek.

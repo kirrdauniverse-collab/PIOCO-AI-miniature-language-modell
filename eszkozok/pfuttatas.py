@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""PIOCO AI — pfuttatas.py: VIRTUÁLIS EMULÁTOR-TESZT a pioco-0.5.p fájlon.
+"""PIOCO AI — pfuttatas.py: VIRTUÁLIS EMULÁTOR-TESZT a pioco-0.6.p fájlon.
 
 v2 — a v1 teszt az elavult (REM-hordozós, 6 soros) felépítést nézte;
 az új, C/6-javított elrendezést vizsgálja:
@@ -23,7 +23,7 @@ from szimfuttatas import a2z, zx_to_txt
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ADAT = os.path.join(BASE, "kazetta", "adat")
-PFILE = os.path.join(BASE, "kazetta", "pioco-0.5.p")
+PFILE = os.path.join(BASE, "kazetta", "pioco-0.6.p")
 SCREENSHOT = os.path.join(BASE, "kazetta", "kepernyokep_p.txt")
 
 DFILE = 0x4200
@@ -54,6 +54,29 @@ def main():
     assert m[vars_] == 0x80, "VARS-záró 0x80 hiányzik"
     assert m[d_file:d_file + 25] == b"\x76" * 25, "az összezsugorított képernyő hiányzik"
     assert m[0x403B] == 0x40, "CDFLAG nem SLOW"
+
+    # --- D-4.2 FEJLÉC-KAPU: a 0x74 B-s sysvars-fejléc bájtonként a zmakebas
+    #     receptje szerint (a timex-sinclair zmakebas-plus createHeader()
+    #     forrásából), NXTLIN = 0x407D AUTOSTART (az 1. sor címe — a D-4.0-ás
+    #     diagnózis: NXTLIN=hordozócím = azonnali restart a betöltő
+    #     emulátorokban; a D-4.0 javítás egy rebase-ben elveszett, ez a kapu
+    #     mostantól bájtonként őrzi) ---
+    ref = bytearray(0x74)
+    rw = lambda at, v: (ref.__setitem__(at, v & 0xFF), ref.__setitem__(at + 1, (v >> 8) & 0xFF))
+    rw(3, d_file); rw(5, d_file + 1); rw(7, d_file + 25)
+    rw(11, d_file + 26); rw(13, d_file + 25)
+    rw(17, d_file + 26); rw(19, d_file + 26)
+    rw(22, 0x405D)
+    ref[25] = 2; rw(26, 1)
+    ref[28] = 0xFF; rw(29, 0xFFFF)
+    ref[31] = 55
+    rw(32, 0x407D)                      # NXTLIN — AUTOSTART
+    rw(39, 0x0C8D); rw(43, 0xFFFF)
+    ref[47], ref[48], ref[49], ref[50] = 0xBC, 33, 24, 0x40
+    diffs = [(i, pf[i], ref[i]) for i in range(0x74) if pf[i] != ref[i]]
+    assert not diffs, ("fejléc-eltérés a zmakebas recepttől: "
+                       + ", ".join(f"off {i}: 0x{g:02X}≠0x{w:02X}" for i, g, w in diffs[:10]))
+    print("fejléc-kapu: mind a 116 B a zmakebas receptje (NXTLIN=0x407D autostart)")
 
     # --- 2. a 2 soros program szerkezete ---
     boot, blab = assemble(open(os.path.join(BASE, "motor", "boot.asm"), encoding="utf-8").read())
@@ -153,7 +176,7 @@ def main():
         want = [a2z(c) for c in text]
         assert got == want, f"splash eltérés ({row},{col}): {got} != {want}"
     expect_at(2, 5, "PIOCO AI")
-    expect_at(7, 9, "16K  PIOCO  0.5")
+    expect_at(7, 9, "16K  PIOCO  0.6")
     print("D_FILE: 25 sor + záró stop-bájt; splash-ok a helyükön")
 
     zones = [(0x400C, 0x400F), (0x4082, 0x41FF), (0x4200, 0x4539),
@@ -172,7 +195,7 @@ def main():
         base = DFILE + row * 33
         lines_out.append("|" + "".join(zx_to_txt(m[base + col]) for col in range(32)) + "|")
     lines_out.append("+" + "-" * 32 + "+")
-    art = ("PIOCO AI 0.5 — a pioco-by-GLM-0.5.p virtuális emulátor-futása után\n"
+    art = ("PIOCO AI 0.6 — a pioco-by-GLM-0.6.p virtuális emulátor-futása után\n"
            + "\n".join(lines_out) + "\n")
     with open(SCREENSHOT, "w", encoding="utf-8") as f:
         f.write(art)

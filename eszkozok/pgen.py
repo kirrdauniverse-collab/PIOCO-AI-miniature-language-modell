@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""PIOCO AI — pgen.py: REZIDENS .P terjesztési fájl (pioco-0.5.p) generálása.
+"""PIOCO AI — pgen.py: REZIDENS .P terjesztési fájl (pioco-0.6.p) generálása.
 
 v2 — a C/6-os hibajelentés (valódi emulátorból) utáni áttervezés:
   - a `RAND USR 16514` sor számformátuma a zmakebas forrása szerint készül:
@@ -18,7 +18,7 @@ zmakebas ZX81 mód forrásakódjából):
   .P = [116 B (0x74) sysvars a 0x4009-től][program][adatterület]
        [25×0x76 összezsugorított képernyő][0x80 VARS-záró]
 Sorformátum: [sorszám BE:2][hossz LE:2][törzs…0x76] (a hossz a 0x76-tal).
-A repóbeli kimenet neve pioco-0.5.p; a felhasználónak átadott
+A repóbeli kimenet neve pioco-0.6.p; a felhasználónak átadott
 másolat a pioco-by-GLM-0.3.p nevet viseli (névkonvenció, 2026-11-21).
 """
 import os, sys
@@ -27,7 +27,7 @@ from z80asm import assemble
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ADAT = os.path.join(BASE, "kazetta", "adat")
-OUT = os.path.join(BASE, "kazetta", "pioco-0.5.p")
+OUT = os.path.join(BASE, "kazetta", "pioco-0.6.p")
 # D-3.9: a hordozó XOR-kulcsa a motor/boot.asm-ből olvasva (egyetlen forrás —
 # a BLKCPY kódja és ez a generátor nem csúszhat szét). A 0x80 a .P formátumban
 # a VARS-záró bájt, ezért a fájltest egyetlen 0x80-at sem tartalmazhat; a
@@ -133,7 +133,14 @@ def main():
     hd[28] = 0xFF            # LAST_K (3 bájt)
     hw(29, 0xFFFF)
     hd[31] = 55              # MARGIN
-    hw(32, data_start)       # NXTLIN — a program utáni első bájt
+    # D-4.2 AUTOSTART: NXTLIN = az 1. sor fejlécének címe (0x4009+0x74).
+    # A D-4.0-ás diagnózis helyes volt (a hibás data_start-érték = az XOR-
+    # hordozó futtatása BASIC-ként = azonnali restart), de a javítás a rebase
+    # során elveszett. MOSTANTÓL a fejléc-kapu (pfuttatas) bájtonként őrzi.
+    # A 0x407D a zmakebas autostart receptje (createHeader: programBaseAddress
+    # + az autostart-sor offszete=0) — a betöltő emulátorok a LOAD végeztével
+    # ide ugranak: 1. sor REM (semmi) → 2. sor RAND USR 16514 → a boot.
+    hw(32, 0x407D)           # NXTLIN — AUTOSTART: az 1. sor címe
     hw(39, 0x0C8D)           # T_ADDR
     hw(43, 0xFFFF)           # FRAMES
     hd[47] = 0xBC            # PR_CC

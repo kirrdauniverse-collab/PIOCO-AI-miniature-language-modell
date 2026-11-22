@@ -1,4 +1,4 @@
-PIOCO AI 0.5 — D_FILE a Z80-szimulációs végpont-teszt után
+PIOCO AI 0.6 — D_FILE a Z80-szimulációs végpont-teszt után
 +--------------------------------+
 |                                |
 |                                |
@@ -7,7 +7,7 @@ PIOCO AI 0.5 — D_FILE a Z80-szimulációs végpont-teszt után
 |                                |
 |                                |
 |                                |
-|         16K  PIOCO  0.5        |
+|         16K  PIOCO  0.6        |
 |                                |
 |                                |
 |                                |

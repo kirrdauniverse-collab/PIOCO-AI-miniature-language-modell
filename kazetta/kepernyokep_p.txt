@@ -1,4 +1,4 @@
-PIOCO AI 0.5 — a pioco-by-GLM-0.5.p virtuális emulátor-futása után
+PIOCO AI 0.6 — a pioco-by-GLM-0.6.p virtuális emulátor-futása után
 +--------------------------------+
 |                                |
 |                                |
@@ -7,7 +7,7 @@ PIOCO AI 0.5 — a pioco-by-GLM-0.5.p virtuális emulátor-futása után
 |                                |
 |                                |
 |                                |
-|         16K  PIOCO  0.5        |
+|         16K  PIOCO  0.6        |
 |                                |
 |                                |
 |                                |
