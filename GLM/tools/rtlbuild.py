@@ -9,7 +9,7 @@ a LOAD command inside a program line, tape-name matched).
 Program (ZX81 char codes: space=0x00, letters=0x26+, digits=0x1C+, '-'=0x16,
 strings delimited by 0x0B; keywords PRINT=0xF5 INPUT=0xEE LOAD=0xEF):
     1 REM PICO AI GLM SHELL LOADER
-    2 PRINT "PICO AI TAPE IS LOADING"
+    2 PRINT "PICO AI V065-2 IS LOADING"
     3 PRINT "MINIATURE AI MODEL FOR 16K"
     4 PRINT "IT THINKS AND WRITES ANSWERS"
     5 PRINT "13 TOPIC PACKS RIDE THE TAPE"
@@ -79,7 +79,7 @@ def build_loader_lines():
         lines.append((bnum(len(lines) + 1), llen(body), body, bytes([NL])))
 
     add(bytes([REMB]) + zx_text("PICO AI GLM SHELL LOADER"))
-    add(bytes([PRINT_]) + zx_quoted("PICO AI TAPE IS LOADING"))
+    add(bytes([PRINT_]) + zx_quoted("PICO AI V065-2 IS LOADING"))
     add(bytes([PRINT_]) + zx_quoted("MINIATURE AI MODEL FOR 16K"))
     add(bytes([PRINT_]) + zx_quoted("IT THINKS AND WRITES ANSWERS"))
     add(bytes([PRINT_]) + zx_quoted("13 TOPIC PACKS RIDE THE TAPE"))
