@@ -18,7 +18,7 @@ dátumbélyeggel és elavulás-kezeléssel — ahogy a mesterprompt kérte.
 
 | Vonal | Motor | Állapot | Hol |
 | --- | --- | --- | --- |
-| **A — 16K multiload kazetta (GLM_v064)** | C-motor z88dk-vel Z80 gépi kódba fordítva | ✅ **kipróbálható**: boot-sáv + alaptudás + 13 témácsomag, 15 blokk egy `.T81`-ben | `zx81/16k/` |
+| **A — 16K multiload kazetta (GLM_v065)** | C-motor z88dk-vel Z80 gépi kódba fordítva | ✅ **kipróbálható**: shell betöltő + boot-sáv + alaptudás + 13 témácsomag, 16 blokk egy `.T81`-ben | `zx81/16k/` |
 | **B — PIOCO Z80 asm-vonal** | Kézi Z80 assembly, saját PC-s Python assemblerrel | 🟢 tervek + eszközök kész, motor félkész (0.6) | `motor/`, `eszkozok/`, `kazetta/` |
 
 A közös C-motor PC-n is fut (`engine/rt_*.c`), így a fejlesztés gyorsan
@@ -26,18 +26,26 @@ ellenőrizhető gép nélkül is.
 
 ## Kirakat: kész kazetta
 
-- **`zx81/16k/GLM_v064_RT16_TOPICS.t81`** — a teljes multiload-kazetta:
+- **`zx81/16k/GLM_v065_RT16_TOPICS.t81`** — a teljes multiload-kazetta (16 blokk):
+  - `RTLOAD01` — **új: BASIC shell betöltő a szalag elején** (tisztán BASIC,
+    gépikód nélkül): bemutatja a programot, tájékoztat, hogy a felső memória
+    aktiválása a későbbi v066-ban újraindítással jár, majd ENTER-re
+    `LOAD "RTBASE16"`-mel folytatja a láncot;
   - `RTBOOT01` — bejelentkező kép, a modell üdvözöl, felajánlja a használati
     útmutatót, bekéri a pontos dátumot, órát, felhasználónevet, nemet és a
     születési adatot, majd elmenti őket a védett tartós részbe;
   - `RTBASE16` — motor + alaptudás-csomag a korábbi adatok megőrzésével;
   - 13 témakazetta: tudomány, magyarság, hobbi, egészség, munka, művészet,
     tanulás, irodalom, film, programozás, csillagászat, ASCII-rajz, vers.
+  - Tervezés: a RAMTOP/felső-memória terv (`RTLOAD01`, v066-os `LD SP` +
+    tartószóna) a [`docs/fazis-3-ramtop.md`](docs/fazis-3-ramtop.md) alatt.
+- Az előző, v064-es változat is megmarad: `zx81/16k/GLM_v064_RT16_TOPICS.t81`.
 - Blokkonkénti sima `.p` gyorsbetöltők is készülnek: `zx81/16k/GLM_v064_rt16_*.p`.
 
 **Kipróbálás (EightyOne vagy más ZX81 emulátor, 16K RAM):**
 1. A `.T81`-t kazettaként csatold (tape-ként, ne quickload).
-2. `LOAD ""`, aztán `RUN`.
+2. `LOAD ""`, aztán `RUN`: először az `RTLOAD01` shell betöltő szövegei jönnek,
+   ENTER után a szalag automatikusan továbbmegy.
 3. A boot-sáv üdvözöl és kitölti a profilt; az interju után (ENTER) a szalagról
    névre betölt az `RTBASE16` blokk, onnan az alapkérdéseket a `you>` prompt
    mögött kapod.
@@ -73,7 +81,8 @@ A vezérlők részletes állapotát lásd a [`docs/HASZNALAT-16K.txt`](docs/HASZ
 
 Ez futtatja mindent, ami itt, gép nélkül is ellenőrizhető:
 Z80-assemble (boot + motor0), multiload sáv + adatblokkok építése CRC-körrel,
-rezidens `.P`-generálás, és a kész `GLM_v064_RT16_TOPICS.t81` szalag-ellenőrzése.
+rezidens `.P`-generálás, a `GLM_v064_RT16_TOPICS.t81` szalag-ellenőrzése, majd
+az `RTLOAD01` shell betöltő építése és a `GLM_v065_RT16_TOPICS.t81` ellenőrzése.
 
 A C-motor teljes újrafordításához `z88dk` kell (a kész kazetta a repóban van,
 úgy nem kötelező újrafordítani):

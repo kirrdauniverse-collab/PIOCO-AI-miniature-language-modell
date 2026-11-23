@@ -33,3 +33,4 @@ javaslatait rendeli a mostani kódhoz. Minden sor: hol van a megoldás,
 | DO/DOES/DO NOT alakok | nyelvtani edzés a 4. fázisban (korpusz-bővítés) |
 | "MIT TENNÉL, ha ember lehetnél?" / "milyen nap van ma?" | nem konzerv válasz: a day-of-week a dátum-profilból számolható (óramodul + naptár-rutin tervezve); a hipotetikus kérdés a szándéktábla + szabad generálás kombinációja |
 | Szólások / konzerv válasz-slotok | 7 konzerv slot a 18 bejegyzésű szándéktábla mellett — memória- és token-spórolásra, ahogy javasoltad |
+| RAMTOP-átállítás + felső-memória tartószóna (adatok, szótár, tudás, esetleg a képernyő) | 🟢 v065: az `RTLOAD01` BASIC shell betöltő készen (bejelentkezőkép + magyarázat + ENTER → `LOAD "RTBASE16"`; `zx81/16k/GLM_v065_RT16_TOPICS.t81`); a valódi védett zóna (RAMTOP=0x7F00, motor-indító `LD SP` + 0x4026-írás) a v066 z88dk-körben — l. `docs/fazis-3-ramtop.md` |
