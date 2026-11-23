@@ -3,20 +3,28 @@
 
 Pure-BASIC autostart block (no machine code), built on top of the verified
 t81build16.py helpers. It runs on LOAD "" / RUN, introduces Pico AI, and on
-ENTER chains unconditionally into RTBASE16 (the v0.6.4-verified ROM pattern:
-a LOAD command inside a program line, tape-name matched).
+ENTER chains unconditionally into RTBOOT01 (the proven boot with the
+profile questions), whose sysvar NXTLIN is patched mid-chain (see
+boot_chain_payload) - the v064-verified ROM pattern: a LOAD command
+inside a program line, tape-name matched.
+
+v065.3 chain reason: chaining straight into RTBASE16 left the engine
+without its boot-installed profile/state rows - real-emulator report:
+banner TINYLLM V0.6.4 + prompt OK, but NO answers. The shell now
+loads the boot first; the boot packs the profile and returns 1, then
+its own line 2 continues LOAD "RTBASE16" exactly like v064.
 
 Program (ZX81 char codes: space=0x00, letters=0x26+, digits=0x1C+, '-'=0x16,
 strings delimited by 0x0B; keywords PRINT=0xF5 INPUT=0xEE LOAD=0xEF):
     1 REM PICO AI GLM SHELL LOADER
-    2 PRINT "PICO AI V065-2 IS LOADING"
+    2 PRINT "PICO AI V065-3 IS LOADING"
     3 PRINT "MINIATURE AI MODEL FOR 16K"
     4 PRINT "IT THINKS AND WRITES ANSWERS"
     5 PRINT "13 TOPIC PACKS RIDE THE TAPE"
     6 PRINT "PRESS PLAY THEN PRESS ENTER"
     7 PRINT "LOADING IS SLOW - STAY CALM"
     8 INPUT C
-    9 LOAD "RTBASE16"
+    9 LOAD "RTBOOT01"
 
 Every PRINT string is at most 30 characters: the ZX81 wraps at 32 columns
 (no word logic), longer lines wrap mid-word, eat rows and scroll the screen
@@ -79,7 +87,7 @@ def build_loader_lines():
         lines.append((bnum(len(lines) + 1), llen(body), body, bytes([NL])))
 
     add(bytes([REMB]) + zx_text("PICO AI GLM SHELL LOADER"))
-    add(bytes([PRINT_]) + zx_quoted("PICO AI V065-2 IS LOADING"))
+    add(bytes([PRINT_]) + zx_quoted("PICO AI V065-3 IS LOADING"))
     add(bytes([PRINT_]) + zx_quoted("MINIATURE AI MODEL FOR 16K"))
     add(bytes([PRINT_]) + zx_quoted("IT THINKS AND WRITES ANSWERS"))
     add(bytes([PRINT_]) + zx_quoted("13 TOPIC PACKS RIDE THE TAPE"))
@@ -87,8 +95,9 @@ def build_loader_lines():
     add(bytes([PRINT_]) + zx_quoted("LOADING IS SLOW - STAY CALM"))
     # INPUT C (numeric variable C = 0x28)
     add(bytes([INPUT_, 0x28]))
-    # LOAD "RTBASE16" - tape-name matched, verified in the v064 chain
-    add(bytes([LOADB, QUOTE]) + tb.zx_name("RTBASE16") + bytes([QUOTE]))
+    # boot FIRST (profile questions), then the boot's own line 2
+    # continues the chain into RTBASE16 - the verified v064 flow
+    add(bytes([LOADB, QUOTE]) + tb.zx_name("RTBOOT1M") + bytes([QUOTE]))
     for _, _, body, _ in lines:
         if body[0] == PRINT_:
             assert body[1] == QUOTE and body[-1] == QUOTE
@@ -97,6 +106,34 @@ def build_loader_lines():
     prog = b"".join(h + l + b + n for h, l, b, n in lines) + bytes([NL])
     bodies = b"".join(b for _, _, b, _ in lines)
     return prog, bodies
+
+
+def boot_chain_payload(base_tape):
+    """RTBOOT01's image, rebuilt for a MID-CHAIN LOAD: patch its sysvar
+    NXTLIN ($4029, a new-machine D_FILE copy in the FULL boot image)
+    to PROG ($407D) - the same mid-run resume recipe that
+    t81build16.short_image() applies to the SHORT blocks. Everything
+    else stays byte-identical: the boot's VARS/E_LINE/CH_ADD/STKBOT
+    values already equal the SHORT-form values, and the image carries
+    its own blank display file plus the altint blob, so the ROM LOAD
+    stops at its E_LINE and the resume runs the boot's lines."""
+    i, blocks = 4, {}
+    while i < len(base_tape):
+        nm = base_tape[i:i + 32].split(b"\0")[0].decode()
+        i += 32
+        ln = int(base_tape[i:i + 16].split(b"\0")[0])
+        i += 16
+        blocks[nm] = base_tape[i:i + ln]
+        i += ln
+    payload = blocks["RTBOOT01"]
+    nrec = len(tb.zx_name_record("RTBOOT01"))
+    img = payload[nrec:]
+    assert len(img) == 15889, len(img)
+    nxt = img[0x20] | img[0x21] << 8
+    assert nxt == tb.DFILE, "RTBOOT01 $4029 not the D_FILE copy: 0x%04X" % nxt
+    out = bytearray(img)
+    out[0x20:0x22] = tb.le16(tb.PROG)
+    return bytes(out)
 
 
 def main():
@@ -133,14 +170,20 @@ def main():
     src_tape = os.path.join(out_dir, "GLM_v064_RT16_TOPICS.t81")
     base = open(src_tape, "rb").read()
     assert base[:4] == b"EO81"
+    boot_img = boot_chain_payload(base)
     data = tb.zx_name_record("RTLOAD01") + img
-    tape = b"EO81" + tb.wrap_eo81("RTLOAD01", data) + base[4:]
+    bootdata = tb.zx_name_record("RTBOOT1M") + boot_img
+    tape = (b"EO81"
+            + tb.wrap_eo81("RTLOAD01", data)
+            + tb.wrap_eo81("RTBOOT1M", bootdata)
+            + base[4:])
     out = os.path.join(out_dir, "GLM_v065_RT16_TOPICS.t81")
     open(out, "wb").write(tape)
     print(f"RTLOAD01: full image {len(img)} B "
           f"(prog {len(prog)} B @0x{PROG:04X}, RAMTOP guard 0x7FFD)")
+    print("RTBOOT1M: mid-chain boot (NXTLIN 0x7B00 -> 0x407D)")
     print(f"{os.path.basename(out)}: {len(tape)} B "
-          f"(RTLOAD01 + the 15 v064 blocks re-used verbatim)")
+          f"(RTLOAD01 + RTBOOT1M + the 15 v064 blocks re-used verbatim)")
 
 
 if __name__ == "__main__":

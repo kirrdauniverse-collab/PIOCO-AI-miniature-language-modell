@@ -66,11 +66,18 @@ mindig él.
 
 ## 6. Hogy áll ez most össze (v065)
 
-- `RTLOAD01` = az **első blokk**: bejelentkezőképbemutatás + rövid útmutató +
-  ENTER: a programsor `LOAD "RTBASE16"` fut (a v0.6.4-ben valós emulátorban
-  igazolt, programon belüli LOAD-név-minta) → a lánc automatikusan megy tovább.
-- A 15 v064-es blokk **változatlanul** utazik (nem kockáztatjuk a működő
-  kazettát); a solo `GLM_v065_rtload.p` gyorsteszt-képként is készül.
+- `RTLOAD01` = az **első blokk**: a shell bemutatkozása + ENTER: a programsor
+  `LOAD "RTBOOT1M"` fut — a v0.6.4-ben valós emulátorban igazolt,
+  programon belüli LOAD-név-minta. Az `RTBOOT1M` a boot-sáv mid-lánc
+  változata: egyetlen mezőben tér el, az NXTLIN (0x4029) 0x7B00 → 0x407D
+  javítás (a short_image-recept); enélkül a mid-program betöltést követő
+  folytatás a képernyőfájl-kópia szavára futott volna.
+- INDOK (valós emulátor-megfigyelés): shell → RTBASE16 egyenesen = a motor
+  banner + prompt jó, de VÁLASZ nincs — a profil/állapotsorok a boot-ból
+  jönnek; a lánc ezért boot-első lett (RTLOAD01 → RTBOOT1M → RTBASE16).
+- Az eredeti RTBOOT01 blokk is a kazettán marad (solo használatra), a
+  15 v064-es blokk **változatlanul** utazik; a solo `GLM_v065_rtload.p`
+  gyorsteszt-képként is készül.
 - A szabad tartószóna (0x7E1A fölött, választott zóna 0x7F00-0x7FFC) megléte
   a v066-os motorolvasó figyelmet kapja.
 
