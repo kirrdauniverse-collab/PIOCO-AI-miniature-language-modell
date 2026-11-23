@@ -9,14 +9,18 @@ a LOAD command inside a program line, tape-name matched).
 Program (ZX81 char codes: space=0x00, letters=0x26+, digits=0x1C+, '-'=0x16,
 strings delimited by 0x0B; keywords PRINT=0xF5 INPUT=0xEE LOAD=0xEF):
     1 REM PICO AI GLM SHELL LOADER
-    2 PRINT "PICO AI IS LOADING FROM THIS TAPE"
-    3 PRINT "A MINIATURE AI LANGUAGE MODEL ON 16K"
-    4 PRINT "IT THINKS AND WRITES ITS OWN ANSWERS"
-    5 PRINT "13 TOPIC PACKS RIDE THE SAME TAPE"
+    2 PRINT "PICO AI TAPE IS LOADING"
+    3 PRINT "MINIATURE AI MODEL FOR 16K"
+    4 PRINT "IT THINKS AND WRITES ANSWERS"
+    5 PRINT "13 TOPIC PACKS RIDE THE TAPE"
     6 PRINT "PRESS PLAY THEN PRESS ENTER"
-    7 PRINT "LOADING TAKES A WHILE - STAY CALM"
+    7 PRINT "LOADING IS SLOW - STAY CALM"
     8 INPUT C
     9 LOAD "RTBASE16"
+
+Every PRINT string is at most 30 characters: the ZX81 wraps at 32 columns
+(no word logic), longer lines wrap mid-word, eat rows and scroll the screen
+(observed on a real emulator after mounting v065 - keep under the limit).
 
 The RAMTOP / upper-memory protection design (POKE 16422/16423 + NEW, the
 engine-side LD SP at boot) is documented in docs/fazis-3-ramtop.md and is
@@ -75,16 +79,21 @@ def build_loader_lines():
         lines.append((bnum(len(lines) + 1), llen(body), body, bytes([NL])))
 
     add(bytes([REMB]) + zx_text("PICO AI GLM SHELL LOADER"))
-    add(bytes([PRINT_]) + zx_quoted("PICO AI IS LOADING FROM THIS TAPE"))
-    add(bytes([PRINT_]) + zx_quoted("A MINIATURE AI LANGUAGE MODEL ON 16K"))
-    add(bytes([PRINT_]) + zx_quoted("IT THINKS AND WRITES ITS OWN ANSWERS"))
-    add(bytes([PRINT_]) + zx_quoted("13 TOPIC PACKS RIDE THE SAME TAPE"))
+    add(bytes([PRINT_]) + zx_quoted("PICO AI TAPE IS LOADING"))
+    add(bytes([PRINT_]) + zx_quoted("MINIATURE AI MODEL FOR 16K"))
+    add(bytes([PRINT_]) + zx_quoted("IT THINKS AND WRITES ANSWERS"))
+    add(bytes([PRINT_]) + zx_quoted("13 TOPIC PACKS RIDE THE TAPE"))
     add(bytes([PRINT_]) + zx_quoted("PRESS PLAY THEN PRESS ENTER"))
-    add(bytes([PRINT_]) + zx_quoted("LOADING TAKES A WHILE - STAY CALM"))
+    add(bytes([PRINT_]) + zx_quoted("LOADING IS SLOW - STAY CALM"))
     # INPUT C (numeric variable C = 0x28)
     add(bytes([INPUT_, 0x28]))
     # LOAD "RTBASE16" - tape-name matched, verified in the v064 chain
     add(bytes([LOADB, QUOTE]) + tb.zx_name("RTBASE16") + bytes([QUOTE]))
+    for _, _, body, _ in lines:
+        if body[0] == PRINT_:
+            assert body[1] == QUOTE and body[-1] == QUOTE
+            txt = body[2:-1]
+            assert len(txt) <= 30, "PRINT text > 30 chars wraps on 32 columns"
     prog = b"".join(h + l + b + n for h, l, b, n in lines) + bytes([NL])
     bodies = b"".join(b for _, _, b, _ in lines)
     return prog, bodies

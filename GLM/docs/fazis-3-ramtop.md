@@ -74,13 +74,39 @@ mindig él.
 - A szabad tartószóna (0x7E1A fölött, választott zóna 0x7F00-0x7FFC) megléte
   a v066-os motorolvasó figyelmet kapja.
 
-## 7. Ellenőrzés állapota (v065-lezárás)
+## 7. Emulátor-megfigyelés (a gazda tesztje, v065 után): NE csinálj kézi RAMTOP-váltást a mostani szalagokkal!
+
+A gazda emulátorban a v065 betöltése OK volt, majd a kézi RAMTOP-váltás
+(`POKE 16422,0 : POKE 16423,124` + `NEW`, RAMTOP=0x7F00) után gombnyomásra
+a legfelső sor vízszintesen elcsúszik, és a gép vékony vízszintes pixel
+alakzatokat rajzol. Ok (a lánc-tervezésből következik):
+
+- A SHORT szalagblokkok (RTBASE16, témák) **nem tartalmazzák** a display
+  file-t — az a várakozás, hogy a D_FILE-terület (0x7B00-) tartalma az
+  előző blokkból ottmaradt és érvényes marad; a betöltés csak a
+  rendszerváltozókat frissíti.
+- A `NEW` a képernyőt **áthelyezi** az új RAMTOP alá, és a régi D_FILE-terület
+  tartalmát otthagyja/érvénytelenné teszi. Ha ezután egy blokk betöltődik,
+  annak rendszerváltozói a régi D_FILE-címre mutatnak, ahol már **nincs
+  érvényes sorszerkezet** (nincsenek 0x76-sorvégek) — a ROM a "képernyőnek"
+  hitt memóriarészt hulladékkódként rendereli: ez a vízszintes csík- és
+  sorcsúszás-jelenség.
+- Következtetés: a v066-os motoroldali áttérésnél a `LD SP` mellett **együtt
+  kell szállítani** az új D_FILE-geometriát és a CHAIN újragondolását is
+  (minden blokk vagy tartalmazza a display file-t, vagy a védett zóna-betöltés
+  egy lépésben újrarendezi a képernyőt). A kézi POKE+NEW recept addig tilos.
+
+## 8. Ellenőrzés állapota (v065-lezárás)
 
 - `t81verify.py` a v065-ön: OK — 16 blokk, pontos EOF, RTLOAD01 első.
 - RTLOAD01 bájt-szintű kézi ellenőrzés: 9 sor (REM + 6×PRINT + `INPUT C` +
   `LOAD "RTBASE16"`), csak biztonságos karakterkódok, **nincs számliterál**
   (nincs FP-rekord), minden sor 0x76-tal zárul; az építő assertjei érvényesülnek
   (`tools/rtlbuild.py`, RAMTOP-guard 0x7FFD megőrizve).
+- Javítás (valós emulátor-megfigyelés nyomán): az eredeti PRINT-szövegek
+  33-36 karakteresek voltak; a ZX81 32 oszlopnál (szó-nélküli) tördel és
+  scrolloz, ezért a shell-képernyő összeomlott. Minden szöveg most max. 30
+  karakter, és az építő beépitett asserttel védi (PRINT-sorok <= 30).
 - ROM-szimulátor (`romsim.py`) RUN-gépelési teszt: a kontroll-teszt a
   bizonyítottan működő `kazetta/pioco-0.6.p`-vel is UGYANAZT a
   környezeti csődöt adja (sysvars → 0xFFFF, verem-írások 0x3FFF alatt) —
