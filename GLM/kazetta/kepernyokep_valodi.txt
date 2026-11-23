@@ -1,0 +1,44 @@
+PIOCO AI 0.6 — a fájl VALÓDI emulátorban (ZEsarUX 13.1-B1, headless, ZRCP)
+Út: .P betöltése → autostart (NXTLIN=0x407D) → boot → splash. Generálva: 2026-11-22
+================================================================
+
+ZRCP kapcsolat OK
+
+--- RAMTOP (0x4004) ---
+  4004H 00 80                                            |..|
+
+--- billentyűk: ENTER, R (=RUN kulcsszó K-módban), ENTER ---
+
+--- regiszterek ---
+  PC=0046 SP=7fde AF=dd02 BC=0c02 HL=c38c DE=c3ad IX=0281 IY=4000 AF'=0101 BC'=8102 HL'=10d2 DE'=002b I=1e R=85  F=------N- F'=-------C MEMPTR=0045 IM0 IFF-- VPS: 202 MMU=00000000000000000000000000000000
+
+--- D_FILE-mutató (0x400C) ---
+  400CH 00 42 01 42                                      |.B.B|
+
+--- képernyő (D_FILE=0x4200, 826 B) ---
+  beolvasott bájtok: 826
+  |                                |
+  |                                |
+  |     PIOCO AI                   |
+  |                                |
+  |                                |
+  |                                |
+  |                                |
+  |         16K  PIOCO  0.6        |
+  |                                |
+  |                                |
+  |                                |
+  |                                |
+  |                                |
+  |                                |
+  |                                |
+  |                                |
+  |                                |
+  |                                |
+  |                                |
+  |                                |
+  |                                |
+  |                                |
+  |                                |
+  |                                |
+  |                                |

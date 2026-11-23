@@ -1,0 +1,240 @@
+PIOCO AI — angol szótár (prototípus) — generált lista
+rekordterület: 1041/1144 B
+betűtábla: AEOSITRNHMLUDYWG
+trigramok: 250/250
+
+ID    típus      szöveg
+----------------------------------------
+0x20  FUNK       THE
+0x21  FUNK       A
+0x22  FUNK       AND
+0x23  FUNK       IS
+0x24  FUNK       ARE
+0x25  FUNK       WAS
+0x26  FUNK       I
+0x27  FUNK       YOU
+0x28  FUNK       NOT
+0x29  FUNK       TO
+0x2A  FUNK       OF
+0x2B  FUNK       IN
+0x2C  FUNK       ON
+0x2D  FUNK       FOR
+0x2E  FUNK       IT
+0x2F  FUNK       THAT
+0x30  FUNK       THIS
+0x31  FUNK       WITH
+0x32  FUNK       HAVE
+0x33  FUNK       DO
+0x34  FUNK       DOES
+0x35  FUNK       MY
+0x36  FUNK       YOUR
+0x37  FUNK       -S
+0x38  FUNK       -ED
+0x39  FUNK       -ING
+0x3A  FUNK       -LY
+0x3B  FUNK       'S
+0x3C  FUNK       ,
+0x3D  SZO        WHO
+0x3E  SZO        MADE
+0x3F  SZO        BUILT
+0x40  SZO        SAFAR
+0x41  SZO        SANDOR
+0x42  SZO        QWEN
+0x43  SZO        SPEAK
+0x44  SZO        ONLY
+0x45  SZO        ENGLISH
+0x46  SZO        GERMAN
+0x47  SZO        FRENCH
+0x48  SZO        HUNGARIAN
+0x49  SZO        SPANISH
+0x4A  SZO        ITALIAN
+0x4B  SZO        LANGUAGE
+0x4C  SZO        HAHA
+0x4D  SZO        WOW
+0x4E  SZO        NOOO
+0x4F  SZO        :)
+0x50  SZO        :(
+0x51  SZO        :O
+0x52  SZO        ONE
+0x53  SZO        SWALLOW
+0x54  SZO        SUMMER
+0x55  SZO        MAKE
+0x56  SZO        BUS
+0x57  SZO        DRIVER
+0x58  SZO        WRITER
+0x59  SZO        ASTRONOMER
+0x5A  SZO        SORRY
+0x5B  SZO        AGAIN
+0x5C  SZO        FUNNY
+0x5D  SZO        HAPPY
+0x5E  SZO        SAD
+0x5F  SZO        TRY
+0x60  SZO        SURPRISE
+0x61  SZO        GLAD
+0x62  SZO        UNDERSTAND
+0x63  SZO        0
+0x64  SZO        1
+0x65  SZO        2
+0x66  SZO        3
+0x67  SZO        4
+0x68  SZO        5
+0x69  SZO        6
+0x6A  SZO        8
+0x6B  SZO        9
+0x6C  SZO        KI
+0x6D  SZO        KESZITETT
+0x6E  SZO        CSINALTA
+0x6F  SZO        EMAIL
+0x70  SZO        MAGYARUL
+0x71  SZO        BESZEL
+0x72  SZO        .
+0x73  SZO        ?
+0x74  SZO        AM
+0x75  SZO        ME
+0x76  SZO        NOW
+0x77  SZO        WHAT
+0x78  SZO        !
+0x79  SZO        30
+0x7A  SZO        HE
+0x7B  SZO        STARS
+0x7C  SZO        7
+0x7D  SZO        FROM
+0x7E  SZO        GOOD
+0x7F  SZO        PROGRAM
+0x80  SZO        US
+0x81  SZO        20
+0x82  SZO        :
+0x83  SZO        ABOUT
+0x84  SZO        DRAW
+0x85  SZO        HELP
+0x86  SZO        KNOW
+0x87  SZO        LET
+0x88  SZO        LIKE
+0x89  SZO        NO
+0x8A  SZO        PIOCO
+0x8B  SZO        REMEMBER
+0x8C  SZO        SLOW
+0x8D  SZO        SUN
+0x8E  SZO        TELL
+0x8F  SZO        TIME
+0x90  SZO        TODAY
+0x91  SZO        YES
+0x92  SZO        00
+0x93  SZO        10
+0x94  SZO        16
+0x95  SZO        ALARM
+0x96  SZO        AMATEUR
+0x97  SZO        AT
+0x98  SZO        BETTER
+0x99  SZO        BIG
+0x9A  SZO        BUT
+0x9B  SZO        HAS
+0x9C  SZO        HEAD
+0x9D  SZO        HELLO
+0x9E  SZO        HOUSE
+0x9F  SZO        HOW
+0xA0  SZO        K
+0xA1  SZO        MACHINE
+0xA2  SZO        MEMORY
+0xA3  SZO        NAME
+0xA4  SZO        NIGHT
+0xA5  SZO        RAIN
+0xA6  SZO        RUN
+0xA7  SZO        SEE
+0xA8  SZO        SET
+0xA9  SZO        SICK
+0xAA  SZO        SMALL
+0xAB  SZO        STAR
+0xAC  SZO        TINY
+0xAD  SZO        UP
+0xAE  SZO        WANT
+0xAF  SZO        WEATHER
+0xB0  SZO        WORK
+0xB1  SZO        ZX81
+0xB2  SZO        12
+0xB3  SZO        40
+0xB4  SZO        45
+0xB5  SZO        =
+0xB6  SZO        ACHED
+0xB7  SZO        AN
+0xB8  SZO        ANGOLUL
+0xB9  SZO        ANNA
+0xBA  SZO        APPLES
+0xBB  SZO        ASK
+0xBC  SZO        AZ
+0xBD  SZO        BASIC
+0xBE  SZO        BESZELEK
+0xBF  SZO        BOX
+0xC0  SZO        BY
+0xC1  SZO        BYE
+0xC2  SZO        CHAT
+0xC3  SZO        CLOUDS
+0xC4  SZO        COMPUTER
+0xC5  SZO        COUNT
+0xC6  SZO        CSAK
+0xC7  SZO        CSINAL
+0xC8  SZO        DAY
+0xC9  SZO        DEMO
+0xCA  SZO        DRAWING
+0xCB  SZO        DREAM
+0xCC  SZO        DREAMS
+0xCD  SZO        DRIVES
+0xCE  SZO        EDIT
+0xCF  SZO        EGY
+0xD0  SZO        ERASE
+0xD1  SZO        FAR
+0xD2  SZO        FAST
+0xD3  SZO        FECSKE
+0xD4  SZO        FEEL
+0xD5  SZO        FINE
+0xD6  SZO        FIVE
+0xD7  SZO        FUN
+0xD8  SZO        GENIUS
+0xD9  SZO        GIVE
+0xDA  SZO        GLM
+0xDB  SZO        GO
+0xDC  SZO        GOTO
+0xDD  SZO        GREAT
+0xDE  SZO        LATER
+0xDF  SZO        LIKES
+0xE0  SZO        LINE
+0xE1  SZO        LINES
+0xE2  SZO        MATTER
+0xE3  SZO        MODEL
+0xE4  SZO        MORNING
+0xE5  SZO        MUSIC
+0xE6  SZO        NEM
+0xE7  SZO        NYARAT
+0xE8  SZO        OR
+0xE9  SZO        PC
+0xEA  SZO        PLEASE
+0xEB  SZO        PRINT
+0xEC  SZO        REM
+0xED  SZO        REST
+0xEE  SZO        ROOM
+0xEF  SZO        SAFIZX810GMAIL.COM
+
+szándéktábla (23 bejegyzés, tartalék terület):
+  WHO+ARE+YOU                  → slot  0 (pioco)
+  WHO+MADE                     → slot 21 (creator)
+  WHO+BUILT                    → slot 21 (creator)
+  WHO+IS+SAFAR                 → slot 22 (safar)
+  WHO+SANDOR                   → slot 22 (safar)
+  SPEAK+GERMAN                 → slot 23 (english)
+  SPEAK+FRENCH                 → slot 23 (english)
+  SPEAK+HUNGARIAN              → slot 23 (english)
+  SPEAK+SPANISH                → slot 23 (english)
+  SPEAK+ITALIAN                → slot 23 (english)
+  SPEAK+LANGUAGE               → slot 23 (english)
+  HAHA                         → slot 29 (hahaha)
+  :)                           → slot 29 (hahaha)
+  WOW                          → slot 30 (wow)
+  :O                           → slot 30 (wow)
+  NOOO                         → slot 31 (nooo)
+  :(                           → slot 31 (nooo)
+  ONE+SWALLOW                  → slot 25 (proverb)
+  KI+KESZITETT                 → slot 21 (creator)
+  KI+CSINALTA                  → slot 21 (creator)
+  KI+SAFAR                     → slot 22 (safar)
+  EMAIL                        → slot 24 (email)
+  BESZEL+MAGYARUL              → slot 23 (english)
