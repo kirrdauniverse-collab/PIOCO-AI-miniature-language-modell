@@ -6,7 +6,7 @@ csak az elvárt név-szabály szerint: **MISTRAL + verziószám a fájlnévben**
 
 ## Mi ez?
 Valódi, generatív mini-AI: tokenizálás, THINK-fázis, temperature, 4 bites kvantált
-súlyok, bigramm/trigram-folyam. Nem sabonválasz-adó. Angol prototípus (a ZX81
+súlyok, bigramm/trigram-folyam. Nem sablonválasz-adó. Angol prototípus (a ZX81
 egy betűkészlete miatt minden NAGYBETŰSEN jelenik meg).
 
 ## Betöltés (EightyOne vagy ZEsarUX, eredeti v1 ROM)
@@ -18,10 +18,10 @@ egy betűkészlete miatt minden NAGYBETŰSEN jelenik meg).
 
 ## Vezérlés beszélgetés közben
 SHIFT+1..4 = temperature; SHIFT+9 = reasoning (thinking sáv); SHIFT+5/6 = görgetés;
-SHIFT+S = mentés; SHIFT+SPACE = megszakítás. Schwarzwaldírtás: a motor 0x76-tiltással
+SHIFT+S = mentés; SHIFT+SPACE = megszakítás. Karaktervéd-írás: a motor 0x76-tiltással
 védi a képernyőfájlt (D_FILE-biztonság).
 
-## Memória-térkép (16 KB 内)
+## Memória-térkép (16 KB-n belül)
 - motor (Z80 gépkód): 0x4700–0x57FF (motor.bin, 4 141 B, ORG 0x4700)
 - SZOTAR szótár+bigramm+trigram: 0x5800 (1 982 B) · CHAT 0x6000 · EMSTORE 0x6700
 - MUNKAT munkaterület: 0x6800 (BLINE, TOKBUF, INTENT, RESP, GENCTR stb.)
