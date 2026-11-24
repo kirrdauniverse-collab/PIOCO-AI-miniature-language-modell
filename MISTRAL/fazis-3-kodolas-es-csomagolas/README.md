@@ -7,6 +7,9 @@ impulzus = 150 µs magas + 150 µs mély; bit = 4 ('0') vagy 9 ('1') impulzus;
 bit UTÁN 1300 µs csend (a korábbi 615 µs a szabvány felét se érte el — ez
 okozhatta, hogy a valós ROM-mal dolgozó szalagbeolvasó nem ismerte fel a jelet).
 Az új WAV bájtpontosan visszaolvasható: `t81_wav.py --ellenoriz` → 15 868 bájt OK.
+**Betöltés a gépen (FONTEST!):** a WAV megnyitása (Tape > Open Tape Image) után a ZX81-en
+gépeljuk be: `LOAD ""` + ENTER; a sikeres betöltést a `0 OK, 0:1` riport jelzi — a ZX81
+SIMA mentést NEM futtat el automatikusan, ezután kell: **RUN** (a G billentyű) + ENTER.
 A v2.6d javítja a csomagolást: a `.T81` blokk szerkezete immár bájtponosan a hivatalos
 EightyOne EO81-formátum (l. `etc/t81.cpp`: zx81-karakterkészletű szalagnév, az utolsó
 névbájt bit7-es lezáró, entry-méret = adat + névhossz). Az előző, ASCII-név + külön
