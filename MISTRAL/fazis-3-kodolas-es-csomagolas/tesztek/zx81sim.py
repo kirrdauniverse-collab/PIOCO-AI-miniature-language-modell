@@ -225,13 +225,18 @@ class ZX81Sim:
 
 # ---- szalag-kodolo (bitprotokoll, tick-domaint hasznal) ----
 
-def stream_to_ear(stream, pulse_half=487, bit_gap=2000,
+def stream_to_ear(stream, pulse_half=487, bit_gap=4225,
                   lead_in=25_000, lead_out=2000):
     """EAR atmenetsor keszitese bajsorból: [(tick, szint)].
 
     A szint alapertelmezésen 0 (csend). Bit = 4 (0) vagy 9 (1) db
     impulzus, mindegyik pulse_half magas + pulse_half mely; bit után
-    bit_gap csend. Szinkronizálás: MSB megy eloszor."""
+    bit_gap csend. Szinkronizálás: MSB megy eloszor.
+
+    v2.6e: a bit utani csend alapertelmezese 2000 tick (615 us)
+    helyett 4225 tick (= 1300 us) — ez a ZX81 szalagszabvany
+    (Wikipedia/PZX), es a EightyOne valos-ROM szalagbeolvasoja
+    ehhez van hangolva."""
     transitions = [(0, 0)]
     t = lead_in
     for byte in stream:

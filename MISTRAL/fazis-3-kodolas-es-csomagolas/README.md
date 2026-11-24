@@ -1,7 +1,13 @@
 # 3. fázis — Kódolás és csomagolás (MISTRAL munkaterület)
 
-**Állapot:** v2.6d — **single-image kazetta**; minden teszt zöld volt a v2.6c-nél. A
-v2.6d javítja a csomagolást: a `.T81` blokk szerkezete immár bájtponosan a hivatalos
+**Állapot:** v2.6e — **single-image kazetta**; minden teszt zöld. A v2.6d az EO81-konténer
+hivatalos formájára állt át (l. `t81_build.py`), a v2.6e pedig a szalag-audio
+(`PIOCO.WAV`) időzítését a **SZABVÁNYOS ZX81-protokollra** változtatja:
+impulzus = 150 µs magas + 150 µs mély; bit = 4 ('0') vagy 9 ('1') impulzus;
+bit UTÁN 1300 µs csend (a korábbi 615 µs a szabvány felét se érte el — ez
+okozhatta, hogy a valós ROM-mal dolgozó szalagbeolvasó nem ismerte fel a jelet).
+Az új WAV bájtpontosan visszaolvasható: `t81_wav.py --ellenoriz` → 15 868 bájt OK.
+A v2.6d javítja a csomagolást: a `.T81` blokk szerkezete immár bájtponosan a hivatalos
 EightyOne EO81-formátum (l. `etc/t81.cpp`: zx81-karakterkészletű szalagnév, az utolsó
 névbájt bit7-es lezáró, entry-méret = adat + névhossz). Az előző, ASCII-név + külön
 0x80-lezáró forma okozhatta, hogy néhány emulátor gyorstöltője a konténer-fejlécet
