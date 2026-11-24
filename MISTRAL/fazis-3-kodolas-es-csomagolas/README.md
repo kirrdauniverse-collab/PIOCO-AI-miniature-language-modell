@@ -1,15 +1,19 @@
 # 3. fázis — Kódolás és csomagolás (MISTRAL munkaterület)
 
-**Állapot:** v2.6e — **single-image kazetta**; minden teszt zöld. A v2.6d az EO81-konténer
+**Állapot:** v2.6f — **single-image kazetta**; minden teszt zöld. A v2.6f újdonsága a **`PIOCO.PZX`** kiszállítás (PZX v1.0, l. `t81_pzx.py`): a leghitelesebb szalagforma, amit a EightyOne natívan, impulzus-szinten kezel — nincs WAV-lejátszási bizonytalanság. A v2.6d az EO81-konténer
 hivatalos formájára állt át (l. `t81_build.py`), a v2.6e pedig a szalag-audio
 (`PIOCO.WAV`) időzítését a **SZABVÁNYOS ZX81-protokollra** változtatja:
 impulzus = 150 µs magas + 150 µs mély; bit = 4 ('0') vagy 9 ('1') impulzus;
 bit UTÁN 1300 µs csend (a korábbi 615 µs a szabvány felét se érte el — ez
 okozhatta, hogy a valós ROM-mal dolgozó szalagbeolvasó nem ismerte fel a jelet).
 Az új WAV bájtpontosan visszaolvasható: `t81_wav.py --ellenoriz` → 15 868 bájt OK.
-**Betöltés a gépen (FONTEST!):** a WAV megnyitása (Tape > Open Tape Image) után a ZX81-en
-gépeljuk be: `LOAD ""` + ENTER; a sikeres betöltést a `0 OK, 0:1` riport jelzi — a ZX81
-SIMA mentést NEM futtat el automatikusan, ezután kell: **RUN** (a G billentyű) + ENTER.
+**Betöltés a gépen (FONTOS!):** a PZX/WAV megnyitása (Tape > Open Tape Image) után a
+ZX81-en gépeljük be: `LOAD ""` + ENTER; a sikeres betöltést a `0 OK, 0:1` riport jelzi —
+a ZX81 SIMA mentést NEM futtat el automatikusan, ezután kell: **RUN** (az **R** billentyű,
+K-kurzorral — mint a P → PRINT: egyetlen lenyomás adja az egész szót) + ENTER. RUN után a
+`10 RAND USR 18176` sor hajtódik végre és kijön a `P I O C O  A I` splash. A RUN-lánc gépi
+szinten igazolva: `tesztek/teljes_folyamat_teszt.py` a kiszállított PIOCO.PZX-ből vezérli
+a jelet — LOAD bájtpontos, RUN-egyenérték (USR 18176) után a splash kijön.
 A v2.6d javítja a csomagolást: a `.T81` blokk szerkezete immár bájtponosan a hivatalos
 EightyOne EO81-formátum (l. `etc/t81.cpp`: zx81-karakterkészletű szalagnév, az utolsó
 névbájt bit7-es lezáró, entry-méret = adat + névhossz). Az előző, ASCII-név + külön
@@ -35,6 +39,8 @@ a ZX81 ROM LOAD rutinja csak egyetlen összefüggő képet tud betölteni
 | boot-sablon gyártó | `eszkozok/sablon_keszit.py` | a valódi ROM bootjából kimért telepedett állapot (698 B, determinisztikus) |
 | végponti teszt | `tesztek/kazetta_teszt.py` | konténer + **valódi ROM LOAD ""** (bájtpontos) + rendszerváltozók + motor-boot (splash) |
 | szalag-protokoll teszt | `tesztek/szalag_teszt.py` | EAR-atmenetsoros LOAD valódi ROM-mal |
+| PZX-kiszállítás | `eszkozok/t81_pzx.py` + `kazetta/PIOCO.PZX` | PZX v1.0 (PZXT+PULS+DATA+PAUS+STOP); bájtpontos roundtrip; a `teljes_folyamat_teszt.py` ebből vezeti a jelet |
+| teljes folyamat | `tesztek/teljes_folyamat_teszt.py` | LOAD "" -> RUN a valódi ROM-mal, a kiszállított PZX-ből; splash-igazolás |
 | füstvizsgálat | `tesztek/ellenorzes.py` | EO81-konténer, E_LINE=0x7E00, launcher-sor, rendszerváltozók, D_FILE/0x76-védelem, zónák bájtpontossága, szótár/bigramm/trigram/eml/tadat formák |
 | derail-nyomkövető | `tesztek/trace_motor.py` | motor single-step diagnosztika (az első ROM-PC-ig) |
 | tudásforrások | `tudas/*.txt` | alapcorpusz + 15 témacsomag-forrás (angol prototípus) |
