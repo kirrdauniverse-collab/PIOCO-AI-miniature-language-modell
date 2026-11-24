@@ -168,8 +168,11 @@ def main():
     assert blokkok, "a kontenerben nincs blokk"
     nev, szalag = blokkok[0]
     assert nev == b"PIOCO", f"elso blokk neve: {nev}"
-    assert szalag[:5] == b"PIOCO" and szalag[5] & 0x80, "stream fejlec/lezaro hibas"
-    kep = szalag[6:]
+    # hivatalos EO81-formatum: zx81-karakterkeszletu nev (PIOCO = 352e3428),
+    # az utolso bajt bit7-es lezaro (b4) — a kep ezutan kovetkezik
+    assert szalag[:5] == bytes.fromhex("352e3428b4"), \
+        f"stream fejlec hibas: {szalag[:5].hex()} != 352e3428b4"
+    kep = szalag[5:]
     assert len(kep) == 0x7E00 - 0x4009, f"kep meret: {len(kep)} (15863 kell)"
     assert kep[0x4014 - 0x4009:0x4016 - 0x4009] == SZALAG_ELINE.to_bytes(2, "little"), \
         "a szalagon levo E_LINE nem 0x7E00"

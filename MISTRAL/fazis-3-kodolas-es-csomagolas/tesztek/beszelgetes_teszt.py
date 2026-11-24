@@ -172,7 +172,7 @@ def main():
                          "..", "kazetta", "PIOCO.T81")
     blokkok = kontener_kiszed(kaz_p)
     nev, szalag = blokkok[0]
-    kep = szalag[6:]
+    kep = szalag[5:]   # hivatalos EO81: 5 bajtos zx81-nev (bit7 az utolson)
 
     from zx81sim import ZX81Sim
     sim = ZX81Sim(hely)

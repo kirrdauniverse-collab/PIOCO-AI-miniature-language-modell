@@ -22,11 +22,13 @@ Az .T81 (EO81 konténer) fő blokkja egy teljes ZX81 programkép:
   - a PROFIL (0x7E00..0x7EFF) az image-en KÍVÜL van: a LOAD tényleg sosem
     ír a 0x7E00..0x7FFF zónára (védett tartós memória; a teljes
     persistenciát a motor SHIFT+S-mentése kezeli).
-A szalagfolyam: b"PIOCO" + lezáró bit7-es bájt + kép; a cella LOAD ""-val
-(null-név, D=0x80) névényeztetés nélkül tölthető.
-A konténer headere: b"EO81" + [32 bájtnév + 16 bájt ASCII méret + adat].
-A fő blokk neve: "PIOCO" (32 B); a külső lejátszó adata[0]='P' jelzéssel
-NEM tesz rá saját fájlnevet: a streamben már saját név van.
+A szalagfolyam (hivatalos EO81/T81 egyezmény, l. EightyOne etc/t81.cpp):
+zx81-név (utolsó bájt bit7-es lezáró) + kép; LOAD ""-val (null-név, D=0x80)
+névényezetés nélkül tölthető.
+Konténer: b"EO81" magic; blokkonként entry (32 B ASCII név + 16 B ASCII
+méret; méret = adat + névhossz) + zx81-név + adat. A builder a
+<kép>.P névtelen nyers .p-t is kiírja — ezt az emulátorok gyorstöltője
+közvetlenül futtatja (a restart-probléma elleni egységes forma).
 Lejátszó-szabály: a lejátszó a stream ELŐTT minimálisan 0,5 s csendet adjon
 (a ROM IN-BYTE TIMEOUT-hoz elég).
 
@@ -68,6 +70,33 @@ ZONAK = {
     "TARTALEK": (0x7D00, 0x7DFF),
 }
 FP_18176 = bytes.fromhex("8f0e000000")   # ROM STACK-BC kimérés (5 bajt)
+
+# A hivatalos EightyOne .T81 (konténer-)formátum (l. EightyOne etc/t81.cpp):
+#   blokk = entry(48) + zx81_név(namelen bájt, utolsó |= 0x80) + adat;
+#   entry = név[32] ASCII + méret[16] ASCII decimálisan,
+#   méret = len(adat) + namelen (a névbájtokkal együtt szalaghossz).
+# A korábbi ASCII-név + külön 0x80-by tetőforma NEM egyezik vele: az
+# emulátor gyorstöltője (pl. ZEsarUX quickload) a nyers fájlt 0x4009-re
+# írva a konténer-fejlécet írná a rendszerváltozók helyére -> gép-crash,
+# ami "azonnali újraindítás" képében mutatkozik meg.
+ASCII2ZX81 = bytes.fromhex(
+    "00160b160d161616101117151a161b18" "1c1d1e1f2021222324250e191314120f"
+    "16262728292a2b2c2d2e2f3031323334" "35363738393a3b3c3d3e3f1616161616"
+    "16262728292a2b2c2d2e2f3031323334" "35363738393a3b3c3d3e3f1616161616")
+assert len(ASCII2ZX81) == 96           # ASCII 32..127
+
+def zx81_nev(ascii_nev):
+    """Név ZX81-karakterkészletben, az utolsó bájton bit7 lezáró (hivatalos)."""
+    bajtok = bytes(ASCII2ZX81[min(max(c, 32), 127) - 32] for c in ascii_nev.encode("ascii", "replace"))
+    return bajtok[:-1] + bytes([bajtok[-1] | 0x80])
+
+
+def blokk(ascii_nev, adat):
+    """Hivatalos EO81 blokk: entry(48) + zx81-név + adat."""
+    n = zx81_nev(ascii_nev)
+    return (ascii_nev.encode("ascii", "replace")[:32].ljust(32, b"\x00")
+            + str(len(adat) + len(n)).encode().ljust(16)
+            + n + adat)
 
 
 def launcher_sor():
@@ -162,22 +191,26 @@ def main():
                       read(sys.argv[8]) if len(sys.argv) > 8 else None)
     assert len(kep) == IMAGE_LEN
 
-    # szalagfolyam: név + bit7-lezáró + kép
-    stream = b"PIOCO" + b"\x80" + kep
-    # konténer: "EO81" + név(32) + méret(16 ASCII) + adat
-    kazo = MAGIC + b"PIOCO".ljust(32, b"\x00") + str(len(stream)).encode().ljust(16)
-    kazo += stream
+    # szalagfolyam (hivatalos): zx81-név (bit7 az utolsó bájton) + kép
+    stream = zx81_nev("PIOCO") + kep
+    # konténer: "EO81" + entry(48: név32 ASCII + méret16 ASCII = adat+névhossz)
+    #           + zx81-név + adat
+    kazo = MAGIC + blokk("PIOCO", kep)
     # bővítés: témacsomagok külön blokkokban (a motor saját betöltője kezeli);
     # a 8. argumentum a kb2.bin (KB2T-zóna) — a csomag-blokkok ezután jönnek
     i = 10 if len(sys.argv) > 8 else 8
     while i + 1 < len(sys.argv):
-        adat = read(sys.argv[i])
-        nev = sys.argv[i + 1].encode()
-        kazo += nev[:32].ljust(32, b"\x00") + str(len(adat)).encode().ljust(16)
-        kazo += adat
+        kazo += blokk(sys.argv[i + 1], read(sys.argv[i]))
         i += 2
     with open(out, "wb") as f:
         f.write(kazo)
+    # egységes, azonnal betöltő szalagekvivalens: névtelen .p (nyers kép,
+    # 0x4009-től) — ezt EightyOne/ZEsarUX gyorstöltője közvetlenül futtatja:
+    if str(out).upper().endswith(".T81"):
+        p_out = str(out)[:-4] + ".P"
+        with open(p_out, "wb") as f:
+            f.write(kep)
+        print(f"gyorstolt: {p_out}: {len(kep)} bájt (névtelen .p)")
     print(f"kazetta: {out}: {len(kazo)} bájt "
           f"(kép: {len(kep)} B = 0x7E00-0x4009, 1 főblokk)")
     print("Elméleti szalagidő (ROM LOAD \"\"): kb. 2-4 perc.")

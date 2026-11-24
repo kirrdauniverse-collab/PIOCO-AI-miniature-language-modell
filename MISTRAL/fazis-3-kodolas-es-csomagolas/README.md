@@ -1,7 +1,13 @@
 # 3. fázis — Kódolás és csomagolás (MISTRAL munkaterület)
 
-**Állapot:** v2.6c — **single-image kazetta** (valódi ROM SAVE-kép, ROM LOAD ""-val betölthető),
-minden teszt zöld (`szalag_teszt`, `kazetta_teszt`, `ellenorzes`, `beszelgetes_teszt`).
+**Állapot:** v2.6d — **single-image kazetta**; minden teszt zöld volt a v2.6c-nél. A
+v2.6d javítja a csomagolást: a `.T81` blokk szerkezete immár bájtponosan a hivatalos
+EightyOne EO81-formátum (l. `etc/t81.cpp`: zx81-karakterkészletű szalagnév, az utolsó
+névbájt bit7-es lezáró, entry-méret = adat + névhossz). Az előző, ASCII-név + külön
+0x80-lezáró forma okozhatta, hogy néhány emulátor gyorstöltője a konténer-fejlécet
+0x4009-re írva "azonnali újraindítást" okozott. Megjelent a **`PIOCO.P`** is: névtelen
+nyers .p (0x4009..0x7E00 kép), ami EightyOne/ZEsarUX-ban gyorstöltéssel azonnal fut —
+ez az ajánlott kipróbálási forma. A kazetta-építő mindkettőt kiadja.
 A v2.5 elrendezés a C/6 hiba okát szüntette meg (l. `t81_build.py` fejléc):
 a ZX81 ROM LOAD rutinja csak egyetlen összefüggő képet tud betölteni
 (0x4009-től a szalagon lévő E_LINE-ig, nálunk 0x7E00-ig).

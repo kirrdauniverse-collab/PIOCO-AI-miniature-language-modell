@@ -91,11 +91,11 @@ def vizsgal_t81(path, motor_path=None, szotar_full_path=None,
     nev, szalag = blokkok[0]
     if nev != b"PIOCO":
         hibak.append(f"elso blokk neve {nev!r} != PIOCO")
-    if szalag[:5] != b"PIOCO":
-        hibak.append("a szalagfolyam feje nem 'PIOCO'")
-    if not (len(szalag) > 5 and szalag[5] & 0x80):
-        hibak.append("a szalagfolyam lezaro bajtja nem bit7-es")
-    kep = szalag[6:]
+    # hivatalos EO81-formatum: zen81-karakterkeszletu nev, bit7 lezaro az
+    # utolso nambajton (PIOCO -> 352e3428b4)
+    if szalag[:5] != bytes.fromhex("352e3428b4"):
+        hibak.append(f"a szalagfolyam feje nem a PIOCO zx81-nev: {szalag[:5].hex()}")
+    kep = szalag[5:]
     if len(kep) != IMAGE_LEN:
         hibak.append(f"kep meret: {len(kep)} B (pontosan {IMAGE_LEN} kell"
                      " = 0x7E00-0x4009)")
