@@ -14,6 +14,6 @@ echo "== 3/4 fő README =="
 cp mistral/zx-81/UJ_REPO_README_TERV.md README.md
 echo "== 4/4 commit + push =="
 git add -A
-git commit -m "MISTRAL migracio: mistral/zx-81 teljes anyag + 17x28 vaz + fo README" || echo "(semmi uj)"
+git -c commit.gpgsign=false commit -m "MISTRAL migracio: mistral/zx-81 teljes anyag + 17x28 vaz + fo README" || echo "(semmi uj)"
 git push -u origin HEAD
 echo "== KÉSZ: frissítsd a repó oldalát! =="
