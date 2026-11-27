@@ -3,7 +3,7 @@
 # 17 modell × 28 gép almappa jelző-README-vel + modellek fő README-je.
 # Futtatás az ÚJ repó gyökeréből: python3 eszkozok/uj_repo_vaz_generator.py
 MODELS=["chatgpt","mistral","grok","meta","glm","kimi","qwen","deepseek","claude",
-        "copilot","manus","ernie","gemini","antigravity","windsurf","kiro","opencode"]
+        "copilot","manus","ernie","oxalpha","gemini","antigravity","windsurf","kiro","opencode"]
 MACH=["zx-81","zx-spectrum","zx-spectrum-128","commodore-vic-20","commodore-16",
       "commodore-64","commodore-128","amiga-500","amiga-1200","atari-800xl","atari-st",
       "atari-falcon","bbc","tvc-64","primo","ht-1080z","apple-ii","macintosh",

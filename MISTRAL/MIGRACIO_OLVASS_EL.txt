@@ -1,7 +1,7 @@
-MIGRÁCIÓS CSOMAG v1 — a micro-ai-models-for-retro-computers repó teljes tartalma
+MIGRÁCIÓS CSOMAG v2 — a micro-ai-models-for-retro-computers repó teljes tartalma
 ================================================================================
-Tartalom: 17 modell-mappa × 28 gép-almappa (jelző-README-kkel) + mistral/zx-81
-teljes anyag + fő README. 496 fájl.
+Tartalom: 18 modell-mappa × 28 gép-almappa (chatgpt, mistral, grok, meta, glm, kimi, qwen, deepseek, claude, copilot, manus, ernie, oxalpha, gemini, antigravity, windsurf, kiro, opencode) (jelző-README-kkel) + mistral/zx-81
+teljes anyag + fő README. 618 fájl.
 
 FELTÖLTÉS terminál nélkül (GitHub web):
 1. Töltsd le ezt a ZIP-et (Download raw file / mentés másként).
