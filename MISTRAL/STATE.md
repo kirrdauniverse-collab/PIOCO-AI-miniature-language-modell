@@ -1,4 +1,11 @@
-# MISTRAL-PROJEKT ÁLLÁSJELÉNTÉS (STATE) — utolsó frissítés: 2026-11-27
+# MUSE-81 PROJEKT ÁLLÁSJELÉNTÉS (STATE) — utolsó frissítés: 2026-11-27
+
+**NÉVVÁLTÁS (2026-11-27):** a modell neve **PIOCO AI -> MUSE-81**.
+Kód-elnevezési lánc: PIOCO (motor/splash) -> MISTRAL (fájlnév-szabály) -> **MUSE-81 (végleges)**.
+A kiszállított fájl: `kazetta/MUSE_81_v072.T81` (tartalom = MISTRAL_v072.T81, bájtpontosan).
+**v073 teendő:** a képernyőn látható névváltás a motorban — splash „P I O C O A I" -> „M U S E 8 1",
+kb2-válasz „I AM PIOCO, A TINY AI." -> „I AM MUSE-81, A TINY AI." + WHO MADE „GLM's help" -> "MUSE-81's help",
+újraépítés (z80asm -> t81_build) + mind az 5 teszt + MUSE_81_v073.T81 kiszállítás.
 
 ## 1. Mi ez a projekt?
 Valódi, generatív mini-AI („PIOCO AI”) a Sinclair ZX81 (16 KB RAM) gépre, egyetlen
