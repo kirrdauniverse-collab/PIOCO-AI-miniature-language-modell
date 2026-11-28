@@ -1,0 +1,13 @@
+MIGRÁCIÓS CSOMAG v2 — a micro-ai-models-for-retro-computers repó teljes tartalma
+================================================================================
+Tartalom: 18 modell-mappa × 28 gép-almappa (chatgpt, mistral, grok, meta, glm, kimi, qwen, deepseek, claude, copilot, manus, ernie, oxalpha, gemini, antigravity, windsurf, kiro, opencode) (jelző-README-kkel) + mistral/zx-81
+teljes anyag + fő README. 618 fájl.
+
+FELTÖLTÉS terminál nélkül (GitHub web):
+1. Töltsd le ezt a ZIP-et (Download raw file / mentés másként).
+2. Csomagold ki (kattintás jobb egérgombbal: Kibontás minden).
+3. Nyisd: https://github.com/kirrdauniverse-collab/micro-ai-models-for-retro-computers
+4. "Add file" → "Upload files"
+5. A KIBONTOTT mappából jelöld ki az ÖSSZES elemet (17 mappa + README.md)
+   és húzd rá a felületre. (A mappák szerkezete megmarad.)
+6. Alul "Commit changes".

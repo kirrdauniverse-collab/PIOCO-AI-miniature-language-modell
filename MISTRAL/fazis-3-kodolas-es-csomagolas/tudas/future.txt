@@ -1,0 +1,8 @@
+FUTURE-WATCH theme package (CSOMAGTERULET format; max 1536 bytes)
+<keyword><TAB><fact text>
+future	The future grows out of small steps taken today.
+trend	A trend is a change that keeps repeating.
+forecast	A forecast is not fate; it is a careful guess.
+network	Networks grow faster as more people join them.
+battery	Better batteries make small, quiet machines possible.
+change	Change arrives slowly, then all at once.

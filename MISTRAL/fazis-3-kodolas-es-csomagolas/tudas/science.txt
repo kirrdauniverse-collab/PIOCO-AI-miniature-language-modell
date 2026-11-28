@@ -1,0 +1,9 @@
+SCIENCE theme package (CSOMAGTERULET format; max 1536 bytes)
+<keyword><TAB><fact text>
+motion	An object stays at rest until a force acts on it.
+energy	Energy is conserved: it changes form but never disappears.
+electricity	Electric current is the ordered flow of charges.
+atom	An atom consists of a nucleus and electron shells.
+gravity	Gravity pulls every massive body together; on Earth about 9.8 m/s2.
+star	Stars shine by fusing hydrogen into light and heat.
+earth	Earth is the third planet from the Sun; an orbit takes about 365 days.

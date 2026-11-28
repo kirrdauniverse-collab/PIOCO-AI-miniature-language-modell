@@ -1,0 +1,8 @@
+ASTRONOMY theme package (CSOMAGTERULET format; max 1536 bytes)
+<keyword><TAB><fact text>
+star	Stars burn hydrogen and shine for millions of years.
+moon	The Moon orbits Earth once every 27 days.
+planet	Planets move around a star in stable paths.
+sun	The Sun is our nearest star and gives us light.
+telescope	A telescope gathers faint light from far away.
+galaxy	A galaxy holds millions of stars together.

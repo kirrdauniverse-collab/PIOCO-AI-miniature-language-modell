@@ -1,0 +1,8 @@
+ENTERTAINMENT theme package (CSOMAGTERULET format; max 1536 bytes)
+<keyword><TAB><fact text>
+game	Games train memory, timing and planning.
+music	Music is sound shaped into patterns of time.
+radio	Radio carries voices and music through the air.
+television	Television shows moving pictures and sound.
+dance	Dance turns rhythm into movement.
+fun	Play and rest keep the mind fresh.

@@ -1,0 +1,8 @@
+COOKING theme package (CSOMAGTERULET format; max 1536 bytes)
+<keyword><TAB><fact text>
+cooking	Cooking makes food safer and easier to digest.
+recipe	A recipe lists steps, order and amounts.
+boil	Water boils at 100 degrees Celsius.
+bake	Baking uses dry heat around the food.
+taste	Salt, fat and acid shape most of the taste.
+kitchen	Keep the kitchen clean before and after cooking.

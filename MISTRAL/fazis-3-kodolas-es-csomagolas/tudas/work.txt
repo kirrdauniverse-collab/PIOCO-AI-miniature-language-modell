@@ -1,0 +1,8 @@
+WORK theme package (CSOMAGTERULET format; max 1536 bytes)
+<keyword><TAB><fact text>
+work	Work is effort exchanged for value.
+workday	Short, steady days beat rare bursts.
+rest	Rest is part of the work, not the opposite.
+team	A team shares the load and the credit.
+plan	A plan turns a big wish into small steps.
+salary	Wages are the price of time and skill.

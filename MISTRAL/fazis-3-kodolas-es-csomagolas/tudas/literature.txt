@@ -1,0 +1,8 @@
+LITERATURE theme package (CSOMAGTERULET format; max 1536 bytes)
+<keyword><TAB><fact text>
+book	A book is a machine made of words.
+novel	A novel walks you through another life.
+poem	A poem says much in few words.
+library	A library lends memory to a whole town.
+writer	A writer turns thought into careful order.
+story	Every story has a wish and an obstacle.
